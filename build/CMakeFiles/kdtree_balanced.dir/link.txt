@@ -1,0 +1,1 @@
+/usr/bin/c++   -msse3 -std=c++11 -pg -O2 -m64 -Ofast -flto -msse2 -march=native -mfpmath=sse   CMakeFiles/kdtree_balanced.dir/main.cpp.o  -o kdtree_balanced -rdynamic 

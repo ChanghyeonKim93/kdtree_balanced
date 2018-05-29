@@ -1,0 +1,40 @@
+#IncludeRegexLine: ^[ 	]*#[ 	]*(include|import)[ 	]*[<"]([^">]+)([">])
+
+#IncludeRegexScan: ^.*$
+
+#IncludeRegexComplain: ^$
+
+#IncludeRegexTransform: 
+
+/home/icslkchlap/Documents/kdtree_balanced/kdtree_kch.h
+iostream
+-
+cmath
+-
+stdio.h
+-
+vector
+-
+stdlib.h
+-
+
+/home/icslkchlap/Documents/kdtree_balanced/main.cpp
+iostream
+-
+cmath
+-
+stdio.h
+-
+stdlib.h
+-
+vector
+-
+kdtree_kch.h
+/home/icslkchlap/Documents/kdtree_balanced/kdtree_kch.h
+random
+-
+ctime
+-
+functional
+-
+
