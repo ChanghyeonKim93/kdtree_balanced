@@ -247,7 +247,7 @@ double distance_euclidean(const double* _point_q, const double* _point_r, const 
 
 int search_NN_dfs(Node* node, const double* _point_q, const int _depth, const int _ndim){
     PointNode* curr_point_node;
-int min_index=0;
+    int min_index=0;
     if(node->isLeaf){ // In case of leaf node, push_back the new point into the node.
 	double min_dist = 100000000000;
 	int min_index = -1;
@@ -272,7 +272,7 @@ int min_index=0;
             search_NN_dfs(node->right, _point_q, ( _depth + 1 ) % _ndim, _ndim);
         }
     }
-    
+
     return min_index;
 }
 

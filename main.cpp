@@ -19,8 +19,8 @@ int main(){
     auto generator = std::bind(distribution,engine);
 
 
-    int numOfPoints = 5000;
-    int ndim = 3;
+    int numOfPoints = 6000;
+    int ndim = 4;
 
     std::vector<std::vector<double>> points_vec;
     for(int i=0; i<numOfPoints; i++){
@@ -42,7 +42,7 @@ int main(){
     }
 
     // tree generation
-    int binSize = 200;
+    int binSize = 50;
     int max_depth = round(log2(numOfPoints/binSize));
     std::cout<<"max depth : "<<max_depth<<std::endl;
     Node* tree_root;
@@ -52,8 +52,8 @@ int main(){
     tree_root=create_tree(points,numOfPoints,ndim, max_depth); // 5000 points : 6 ms
 
     start  = clock();
-    for(int i = 0; i < numOfPoints; i++){ // 5000 queries : 0.1 ms . Therefore, 30 iterations corresponds to 3 ms
-	int a= search_NN_dfs(tree_root, points[i], 0, ndim);
+    for(int i = 0; i < numOfPoints/5; i++){ // 5000 queries : 0.1 ms . Therefore, 30 iterations corresponds to 3 ms
+        int a= search_NN_dfs(tree_root, points[i], 0, ndim);
 	for(int j = 0; j< ndim; j++){
 	    //std::cout<<"min dist point : "<<point_node->point[j]<<",";
 	}
@@ -61,11 +61,11 @@ int main(){
 	    //std::cout<<points[i][j]<<",";
 	}
 	//std::cout<<std::endl;
-	
+
     }
     finish = clock();
 
-    std::cout<<"Elapsed time : "<< (finish - start)/1000000.0 <<std::endl;
+    std::cout<<"Elapsed time : "<< (finish - start)/1000.0 <<std::endl;
     std::cout<<"The number of nodes : "	<<verify_tree(tree_root, ndim, 0)<<std::endl;
     //
     //print_tree(tree_root,ndim,0);
