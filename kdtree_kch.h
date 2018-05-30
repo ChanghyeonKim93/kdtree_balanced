@@ -54,10 +54,10 @@ Node* new_node(double* _point) {
 
 	node->left = node->right = NULL;
 
-	node->leafData.resize(0,0);
-	node->pointNodes.resize(0,0);
-	node->leafData.reserve(10);
-	node->pointNodes.reserve(10);
+	//node->leafData.resize(0,0);
+	//node->pointNodes.resize(0,0);
+	//node->leafData.reserve(1);
+	//node->pointNodes.reserve(1);
 	node->numOfPoints = 0;
 	node->isLeaf      = false;
 
@@ -76,7 +76,7 @@ double super_key_compare(const double* _point_a, const double* _point_b, const i
 		int r = i + _cur_dim;
 		r = (r < _ndim) ? r : r - _ndim;
 		diff = _point_a[r] - _point_b[r];
-		if (diff != 0) break; // diff°¡ 0ÀÌ ¾Æ´Ï¸é ¸ØÃã
+		if (diff != 0) break; // diffï¿½ï¿½ 0ï¿½ï¿½ ï¿½Æ´Ï¸ï¿½ ï¿½ï¿½ï¿½ï¿½
 	}
 	return diff;
 }
@@ -107,7 +107,7 @@ int remove_duplicates(double** reference, const int _npoints, const int _cur_dim
 	for (int j = 1; j < _npoints; j++) {
 		double compare = super_key_compare(reference[j], reference[j - 1], _cur_dim, _ndim);
 		if (compare < 0) {
-			printf("merge sort failure: super_key_compare(ref[%lf], ref[%lf]), current lvl=(%lf), compare value = %lf\n", j, j - 1, _cur_dim, compare);
+			printf("merge sort failure: super_key_compare(ref[%d], ref[%d]), current lvl=(%d), compare value = %lf\n", j, j - 1, _cur_dim, compare);
 			exit(1);
 		}
 		else if (compare > 0) reference[++end] = reference[j];
@@ -122,7 +122,7 @@ Node* build_tree(double*** references, double** temp, const int start, const int
 	int axis = _depth % _ndim;
 	//printf("current depth : %d, max depth : %d\n", _depth, _max_depth);
 
-	if (_depth < _max_depth) { // max_depth ±îÁö¸¸ node¸¦ Ãß°¡ÇÑ´Ù.
+	if (_depth < _max_depth) { // max_depth ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ nodeï¿½ï¿½ ï¿½ß°ï¿½ï¿½Ñ´ï¿½.
 		if (end == start) {
 			node = new_node(references[0][end]);
 		}
@@ -176,7 +176,7 @@ Node* build_tree(double*** references, double** temp, const int start, const int
 		//printf("Leaf exit\n");
 	}
 
-	return node; // tree root °¡ µÉ °ÍÀÌ´Ù.
+	return node; // tree root ï¿½ï¿½ ï¿½ï¿½ ï¿½ï¿½ï¿½Ì´ï¿½.
 }
 
 void insert_leaf_data(Node* node, double* _point, const int _depth, const int _ndim, const int _index) {// in case of reaching to a leaf, make the leaf node as a leaf node containing several points.
@@ -188,10 +188,10 @@ void insert_leaf_data(Node* node, double* _point, const int _depth, const int _n
 		point_node = new_point_node(_point, _index);
 
 		node->pointNodes.push_back(point_node);
-		std::cout << "Point node - index : " << point_node->index << std::endl;
+		//std::cout << "Point node - index : " << point_node->index << std::endl;
 		node->numOfPoints++ ;
-		std::cout << "reach the leaf, " << node << " , " << node->numOfPoints << "," << std::endl;
-		// ¸Þ¸ð¸® ¹®Á¦³× ....
+		//std::cout << "reach the leaf, " << node << " , " << node->numOfPoints << "," << std::endl;
+		// memory problem? Linux shows no problems.
 
 	}
 	else { // traveling nodes until reaching the leaf node.
@@ -209,14 +209,14 @@ Node* create_tree(double** _points, const int _npoints, const int _ndim, const i
 
 	double*** references = (double***)malloc(_ndim*sizeof(double**));
 	double** temp = (double**)malloc(_npoints*sizeof(double));
-	for (int i = 0; i < _ndim; i++) {   // dimension ¸¸Å­ merge ÇØ¼­ references¿¡ ÀúÀåÇÑ´Ù.
+	for (int i = 0; i < _ndim; i++) {   // dimension ï¿½ï¿½Å­ merge ï¿½Ø¼ï¿½ referencesï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ï¿½Ñ´ï¿½.
 		references[i] = (double**)malloc(_npoints*sizeof(double*));
 		initialize_reference(_points, references[i], _npoints);
 		merge_sort(references[i], temp, 0, _npoints - 1, i, _ndim);
 	}
 
 	int *end = (int*)malloc(_ndim*sizeof(int));
-	for (int i = 0; i< _ndim; i++) { // Áßº¹ µÈ °Í À» »èÁ¦ÇØÁØ´Ù.
+	for (int i = 0; i< _ndim; i++) { // ï¿½ßºï¿½ ï¿½ï¿½ ï¿½ï¿½ ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ø´ï¿½.
 		end[i] = remove_duplicates(references[i], _npoints, i, _ndim);
 	}
 
@@ -227,9 +227,9 @@ Node* create_tree(double** _points, const int _npoints, const int _ndim, const i
 				exit(1);
 			}
 		}
-	} // ¿©±â±îÁö´Â ¹®Á¦°¡ ¾ø´Ù.
+	} // ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½.
 
-	Node* root = build_tree(references, temp, 0, end[0], _ndim, 0, _max_depth); // ¿©±â°¡ ¹®Á¦ÀÎ°¡ ?
+	Node* root = build_tree(references, temp, 0, end[0], _ndim, 0, _max_depth); // ï¿½ï¿½ï¿½â°¡ ï¿½ï¿½ï¿½ï¿½ï¿½Î°ï¿½ ?
 
 	for (int j = 0; j < _npoints; j++) {
 		insert_leaf_data(root, _points[j], 0, _ndim, j);
@@ -245,7 +245,7 @@ Node* create_tree(double** _points, const int _npoints, const int _ndim, const i
 	return root;
 }
 
-double distance_euclidean(const double* _point_q, const double* _point_r, const int _ndim) {
+inline double distance_euclidean(const double* _point_q, const double* _point_r, const int _ndim) {
 	double temp = 0;
 	for (int i = 0; i < _ndim; i++) {
 		temp += (_point_q[i] - _point_r[i])*(_point_q[i] - _point_r[i]);
@@ -253,7 +253,7 @@ double distance_euclidean(const double* _point_q, const double* _point_r, const 
 	return sqrt(temp);
 }
 
-double distance_manhattan(const double* _point_q, const double* _point_r, const int _ndim) {
+inline double distance_manhattan(const double* _point_q, const double* _point_r, const int _ndim) {
 	double temp = 0;
 	for (int i = 0; i < _ndim; i++) {
 		temp += abs(_point_q[i] - _point_r[i]);
@@ -261,35 +261,38 @@ double distance_manhattan(const double* _point_q, const double* _point_r, const 
 	return temp;
 }
 
-int search_NN_dfs(Node* node, const double* _point_q, const int _depth, const int _ndim) {
+void search_NN_dfs(Node* node, const double* _point_q, const int _depth, const int _ndim, int* _index) {
 	PointNode* curr_point_node;
-	int min_index = 0;
+
 	if (node->isLeaf) { // In case of leaf node, push_back the new point into the node.
-		double min_dist = 100000000000;
-		int min_index = -1;
+		double min_dist = 1234567890;
+		*_index = -1;
 
 		for (int k = 0; k<node->numOfPoints; k++) {
 			//std::cout<<node->pointNodes[k]->index<<std::endl;
 			double curr_dist = distance_euclidean(_point_q, node->pointNodes[k]->point, _ndim);
+			//double curr_dist = distance_manhattan(_point_q, node->pointNodes[k]->point, _ndim);
 			if (curr_dist < min_dist) {
 				min_dist  = curr_dist;
-				min_index = k;
 				curr_point_node = node->pointNodes[k];
+				*_index = node->pointNodes[k]->index;
+
+				if(min_dist<=5) return;
+
 			}
+			//std::cout<<*_index<<std::endl;
 		}
-		//std::cout<<"Searching is reaching the leaf. : "<<node<<", min dist idx : "<<min_index<<std::endl;
 	}
 
 	else { // traveling nodes until reaching the leaf node.
 		if (_point_q[_depth] <= node->point[_depth]) { // Go to left child
-			search_NN_dfs(node->left, _point_q, (_depth + 1) % _ndim, _ndim);
+			search_NN_dfs(node->left,  _point_q, (_depth + 1) % _ndim, _ndim,_index);
 		}
 		else { // Go to right child
-			search_NN_dfs(node->right, _point_q, (_depth + 1) % _ndim, _ndim);
+			search_NN_dfs(node->right, _point_q, (_depth + 1) % _ndim, _ndim,_index);
 		}
 	}
-
-	return min_index;
+	return ;
 }
 
 int verify_tree(const Node* node, const int _ndim, const int _depth)
