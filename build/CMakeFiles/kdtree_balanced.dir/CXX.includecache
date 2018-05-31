@@ -6,12 +6,10 @@
 
 #IncludeRegexTransform: 
 
-/home/icslkchlap/Documents/kdtree_balanced/kdtree_kch.h
+/home/icslkchlap/Documents/kdtree_balanced/kdtree_kch_class.h
 iostream
 -
 cmath
--
-stdio.h
 -
 vector
 -
@@ -29,8 +27,8 @@ stdlib.h
 -
 vector
 -
-kdtree_kch.h
-/home/icslkchlap/Documents/kdtree_balanced/kdtree_kch.h
+kdtree_kch_class.h
+/home/icslkchlap/Documents/kdtree_balanced/kdtree_kch_class.h
 random
 -
 ctime

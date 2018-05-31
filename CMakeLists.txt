@@ -6,7 +6,7 @@ find_package(cmake_modules)
 set(includeDirs ${includeDirs} ${CMAKE_CURRENT_BINARY_DIR})
 set(includeDirs ${includeDirs} include)
 
-set(SRC ${SRC} main.cpp kdtree_kch.h)
+set(SRC ${SRC} main.cpp kdtree_kch.h kdtree_kch_class.h)
 
 include_directories( ${includeDirs} )
 

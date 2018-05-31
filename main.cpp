@@ -3,7 +3,8 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <vector>
-#include "kdtree_kch.h"
+//#include "kdtree_kch.h"
+#include "kdtree_kch_class.h"
 
 #include <random>
 #include <ctime>
@@ -20,7 +21,7 @@ int main() {
 	auto generator = std::bind(distribution, engine);
 
 
-	int numOfPoints = 8000;
+	int numOfPoints = 5000;
 	int ndim = 4;
 
 	std::vector<std::vector<double>> points_vec;
@@ -28,10 +29,19 @@ int main() {
 		std::vector<double> temp;
 		for (int j = 0; j<ndim; j++) {
 			temp.push_back(generator());
-			//temp.push_back(j);
 		}
 		points_vec.push_back(temp);
 	}
+
+  std::vector<std::vector<double>> points_q_vec;
+  for (int i = 0; i<numOfPoints/10; i++) {
+    std::vector<double> temp;
+    for (int j = 0; j<ndim; j++) {
+      temp.push_back(generator());
+      //temp.push_back(j);
+    }
+    points_q_vec.push_back(temp);
+  }
 
 	double** points = (double**)malloc(numOfPoints*sizeof(double*));
 
@@ -43,14 +53,27 @@ int main() {
 	}
 
 	// tree generation
-	int binSize = 250; // bin size °¡ ÇÑ 10~50 Á¤µµ°¡ Àû´çÇÑµí.
+	int binSize = 50; // bin size ï¿½ï¿½ ï¿½ï¿½ 10~50 ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ï¿½Ñµï¿½.
 	int max_depth = (int)round(log2(numOfPoints / binSize));
 	std::cout << "max depth : " << max_depth << std::endl;
-	Node* tree_root;
+
+  BKDTree* kdtree_handler = new BKDTree(points_vec, binSize);
+  Node* tree_root;
+  tree_root = kdtree_handler->create_tree(points);
+
+
+  start = clock();
+
+  std::vector<int> indexVec;
+  indexVec.reserve(numOfPoints);
+  for(int j = 0; j < 30 ; j++){
+    kdtree_handler->search_NN_dfs_index(tree_root, points_q_vec,indexVec);
+  } 
+
+	/*Node* tree_root;
 
 	tree_root = create_tree(points, numOfPoints, ndim, max_depth); // 5000 points : 6 ms
 
-	start = clock();
 for(int j = 0; j<10; j++){
 for (int i = 0; i < numOfPoints/15 ; i++) { // 5000 queries : 0.1 ms . Therefore, 30 iterations corresponds to 3 ms
 		int* a = new int;
@@ -66,12 +89,11 @@ for (int i = 0; i < numOfPoints/15 ; i++) { // 5000 queries : 0.1 ms . Therefore
 
 	}
 
-}
-	
+}*/
+
 	finish = clock();
 
 	std::cout << "Elapsed time : " << (finish - start) / 1000000.0 << std::endl;
-	std::cout << "The number of nodes : " << verify_tree(tree_root, ndim, 0) << std::endl;
 	//
 	//print_tree(tree_root,ndim,0);
 	//print_leaf(tree_root,ndim,0);
@@ -81,6 +103,7 @@ for (int i = 0; i < numOfPoints/15 ; i++) { // 5000 queries : 0.1 ms . Therefore
 		free(points[i]);
 	}
 	free(points);
+  delete kdtree_handler;
 	std::cout << "Program is running !" << std::endl;
 	return 0;
 }
