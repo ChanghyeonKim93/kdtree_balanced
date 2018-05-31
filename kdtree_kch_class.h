@@ -8,6 +8,7 @@ inline double distance_euclidean(const double* _point_q, const double* _point_r,
 	for (int i = 0; i < _ndim; i++) {
 		temp += (_point_q[i] - _point_r[i])*(_point_q[i] - _point_r[i]);
 	}
+	//std::cout<<"dist:"<<sqrt(temp)<<std::endl;
 	return sqrt(temp);
 }
 
@@ -40,10 +41,11 @@ class BKDTree{
 	/// Constructor & destructor
 public:
 	BKDTree(){}
-	BKDTree(const std::vector<std::vector<double>>& _points, const int& _binSize){
+	BKDTree(const std::vector<std::vector<double>>& _points, const int& _binSize, const double& _dist_thres){
 		this->npoints   = _points.size();
 		this->ndim      = _points[0].size();
 		this->binSize   = _binSize;
+		this->dist_thres= _dist_thres;
 		this->maxDepth = (int)round(log2(this->npoints / this->binSize));
 		std::cout<<"\nB k-d tree handler initialization - npoints : "<<this->npoints<<", ndim : "<<this->ndim<<", binSize : "<<this->binSize<<", max depth : "<<this->maxDepth<<std::endl<<std::endl;
 	}
@@ -57,6 +59,7 @@ private:
 	int ndim;
 	int binSize;
 	int maxDepth;
+	double dist_thres;
 
 	/// querying nearest neighbor
 public:
@@ -328,13 +331,13 @@ void BKDTree::search_NN_dfs(Node* node, const double* _point_q, const int _depth
 		for (int k = 0; k<node->numOfPoints; k++) {
 			//std::cout<<node->pointNodes[k]->index<<std::endl;
 			double currDist = distance_euclidean(_point_q, node->pointNodes[k]->point, this->ndim);
-			//double curr_dist = distance_manhattan(_point_q, node->pointNodes[k]->point, this->ndim);
+			//double currDist = distance_manhattan(_point_q, node->pointNodes[k]->point, this->ndim);
 			if (currDist < minDist) {
-				minDist  = currDist;
+				minDist = currDist;
 				currPointNode = node->pointNodes[k];
 				*_index = node->pointNodes[k]->index;
 
-				if(minDist<=0) return;
+				if(minDist<=this->dist_thres) return;
 			}
 			//std::cout<<*_index<<std::endl;
 		}
