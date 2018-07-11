@@ -1,4 +1,4 @@
-#include "BKDTree.h"
+#include "kdtree_kch_class.h"
 #include "mex.h"
 #include "matrix.h" //isNaN/isinf
 #include <vector>

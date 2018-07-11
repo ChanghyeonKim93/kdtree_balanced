@@ -1,4 +1,4 @@
-#include "BKDTree.h"
+#include "kdtree_kch_class.h"
 #include "mex.h"
 
 void retrieve_tree( const mxArray* matptr, BKDTree* & tree){
