@@ -2,54 +2,76 @@
 #include <cmath>
 #include <vector>
 #include <stdlib.h>
-//typedef std::vector<double> Point;
 
-inline double distance_euclidean(const double* _point_q, const double* _point_r, const int _nDims) {
+inline double distance_euclidean(const std::vector<double>& _point_q, const std::vector<double>& _point_r, const int _ndim) {
 	double temp = 0;
-	for (int i = 0; i < _nDims; i++) temp += (_point_q[i] - _point_r[i])*(_point_q[i] - _point_r[i]);
+	for (int i = 0; i < _ndim; i++) {
+		temp += (_point_q[i] - _point_r[i])*(_point_q[i] - _point_r[i]);
+	}
 	//std::cout<<"dist:"<<sqrt(temp)<<std::endl;
 	return sqrt(temp);
 }
 
-inline double distance_manhattan(const double* _point_q, const double* _point_r, const int _nDims) {
+inline double distance_manhattan(const std::vector<double>& _point_q, const std::vector<double>& _point_r, const int _ndim) {
 	double temp = 0;
-	for (int i = 0; i < _nDims; i++) temp += fabs(_point_q[i] - _point_r[i]);
+	for (int i = 0; i < _ndim; i++) {
+		temp += abs(_point_q[i] - _point_r[i]);
+	}
 	return temp;
 }
 
-typedef struct _PointNode {
-	double* point;
+typedef struct _PointNode{
+  std::vector<double> point;
 	int index;
 } PointNode;
 
-typedef struct _Node {
-	double* point;
-	_Node* left;
+typedef struct _Node{
+  std::vector<double> point;
+  _Node* left;
 	_Node* right;
 
-	std::vector<double*>    leafData;
-	std::vector<PointNode*> pointNodes;
+	std::vector<std::vector<double>>    leafData;
+	std::vector<PointNode*>             pointNodes;
 	int numOfPoints;
 	bool isLeaf;
 } Node;
 
-class BKDTree {
+class BKDTree{
 
-    /// Constructor & destructor
+	/// Constructor & destructor
 public:
-	BKDTree(){}
-	BKDTree(const std::vector<std::vector<double>>& _points_vec, const int& _binSize, const double& _distThres);
-	~BKDTree();
+	BKDTree(const std::vector<std::vector<double>>& _points_vec, const int& _binSize, const double& _dist_thres){
+		this->npoints   = _points_vec.size();
+		this->ndim      = _points_vec[0].size();
+		this->binSize   = _binSize;
+		this->dist_thres= _dist_thres;
+		this->maxDepth = (int)round(log2(this->npoints / this->binSize));
+		std::cout<<"\nB k-d tree handler initialization - npoints : "<<this->npoints<<", ndim : "<<this->ndim<<", binSize : "<<this->binSize<<", max depth : "<<this->maxDepth<<std::endl<<std::endl;
+
+		double** points = (double**)malloc(this->npoints*sizeof(double*));
+		for (int i = 0; i < this->npoints; i++) {
+			points[i] = (double*)malloc(this->ndim*sizeof(double));
+			for (int j = 0; j< this->ndim; j++) {
+				points[i][j] = _points_vec[i][j];
+			}
+		}
+		this->tree_root = this->create_tree(points);
+	}
+
+	~BKDTree() {
+		printf("\nB k-d tree handler is deleted !\n\n");
+	}
 
 	/// Member variables for class
-public:
-	int nPoints;
-	int nDims;
+private:
+	int npoints;
+	int ndim;
 	int binSize;
 	int maxDepth;
-	double distThres;
+	double dist_thres;
 
-	Node* treeRootNode;
+	Node* tree_root;
+  std::vector<Node*> nodePtrs;
 
 	/// querying nearest neighbor
 public:
@@ -85,51 +107,11 @@ private:
 };
 
 
-/**
- * ----------------------------------------------------------------------------
- * 
- * 
- *                                IMPLEMENTATION
- * 
- * 
- * ----------------------------------------------------------------------------
- */
-
-/**
- * Method name            : BKDTree()
- * Function of the method : Creates a BKDTree ( depth-first-search version ) with the provided vector data.
- * 
- * @param _points_vec     : a std::vector<std::vector<double>> containing the point data.
- *                          the number of points and the dimensionality are inferred by the data.
- * @param _binSize        : the size of the leaf bin. recommended range is from 5 to 20.
- * @param _distThres      : distance threshold value for rejecting matches with high potential of long matching.
- */
-BKDTree::BKDTree(const std::vector<std::vector<double>>& _points_vec, const int& _binSize, const double& _distThres){
-		this->nPoints   = _points_vec.size();
-		this->nDims     = _points_vec[0].size();
-		this->binSize   = _binSize;
-		this->distThres = _distThres;
-		this->maxDepth  = (int)ceil(log2(  ceil((double)this->nPoints / (double)this->binSize) ) );
-		std::cout<<"\nB k-d tree handler initialization - nPoints : "<<this->nPoints<<", nDims : "<<this->nDims<<", binSize : "<<this->binSize<<", max depth : "<<this->maxDepth<<std::endl<<std::endl;
-		std::cout<<"verification npoints : "<<pow(2,this->maxDepth)*this->binSize<<"\n"<<std::endl;
-		
-		double** points = (double**)malloc(this->nPoints*sizeof(double*)); // change the data type.
-		for (int i = 0; i < this->nPoints; i++)
-		{
-			points[i] = (double*)malloc(this->nDims*sizeof(double));
-			for (int j = 0; j < this->nDims; j++) points[i][j] = _points_vec[i][j];
-		}
-
-		this->treeRootNode = this->create_tree(points); // allocate the treeRootNode address
-
-		// free the memory.
-		for(int i= 0; i<this->nPoints; i++) free(points[i]);
-		free(points);
-}
-BKDTree::~BKDTree(){
-	
-	printf("\nB k-d tree handler is deleted !\n\n");
-}
+/* ====================================================================================
+* ====================================================================================
+* =================                  IMPLEMENTATION                  =================
+* ====================================================================================
+* ==================================================================================== */
 
 PointNode* BKDTree::new_point_node(double* _point, int _index) {
 	PointNode* point_node;
@@ -139,30 +121,22 @@ PointNode* BKDTree::new_point_node(double* _point, int _index) {
 		exit(1);
 	}
 
-	point_node->point = (double*)malloc(sizeof(double)*this->nDims);
-	for(int i = 0; i<this->nDims; i++) point_node->point[i] = _point[i];
+	point_node->point = _point;
 	point_node->index = _index;
 
 	return point_node;
 }
 
 
-Node* BKDTree::new_node(double* _point) { // send the node address 
+Node* BKDTree::new_node(double* _point) {
 	Node* node;
-
-	if ( (node = (Node*)malloc(sizeof(Node))) == NULL) 
-	{
+	if ((node = (Node*)malloc(sizeof(Node))) == NULL) {
 		printf("error allocating new Node ! \n");
 		exit(1);
 	}
 	// initialize the data w/o leafData
-	node->point = NULL;
-	node->left  = NULL;
-	node->right = NULL;
-
-	// allocating the new point by deep copying.
-	node->point = (double*)malloc(sizeof(double)*this->nDims);
-	for(int i = 0; i<this->nDims; i++) node->point[i] = _point[i];
+  for(int k = 0; k < this->ndim; k++) node->point.push_back(_point[i]);
+	node->left  = node->right = NULL;
 
 	node->leafData.resize(0,0);
 	node->pointNodes.resize(0,0);
@@ -174,42 +148,40 @@ Node* BKDTree::new_node(double* _point) { // send the node address
 
 
 void BKDTree::initialize_reference(double** _points, double** reference) {
-	for (int i = 0; i<this->nPoints; i++) reference[i] = _points[i];
+	for (int i = 0; i<this->npoints; i++) {
+		reference[i] = _points[i];
+	}
 }
 
 
 double BKDTree::super_key_compare(const double* _point_a, const double* _point_b, const int _cur_dim) {
 	double diff = 0;
-	for (int i = 0; i < this->nDims; i++) 
-	{
+	for (int i = 0; i< this->ndim; i++) {
 		int r = i + _cur_dim;
-		r = (r < this->nDims) ? r : r - this->nDims; // circular
+		r = (r < this->ndim) ? r : r - this->ndim;
 		diff = _point_a[r] - _point_b[r];
-		if (diff != 0) break; // 만약, 두개가 같지 않으면 ( 즉, 다르면 ) 그냥 패스 ~
+		if (diff != 0) break; // diff�� 0�� �ƴϸ� ����
 	}
-	return diff; // 만약, 모든 차원의 숫자가 같으면 0이 나오고 / a가 크면 (+) / b가 크면 (-).
+	return diff;
 }
 
 
 void BKDTree::merge_sort(double** reference, double** temporary, const int low, const int high, const int _cur_dim) {
 	int i, j, k;
 
-	if (high > low) 
-	{
+	if (high > low) {
 		const int mid = (high + low) / 2;
 		merge_sort(reference, temporary, low,     mid,  _cur_dim);
 		merge_sort(reference, temporary, mid + 1, high, _cur_dim);
 
-		for (i = mid + 1; i > low; i--)
-		{
+		for (i = mid + 1; i > low; i--) {
 			temporary[i - 1] = reference[i - 1];
 		}
-		for (j = mid; j < high; j++)
-		{
+
+		for (j = mid; j < high; j++) {
 			temporary[mid + high - j] = reference[j + 1];
 		}
-		for (k = low; k <= high; k++)
-		{
+		for (k = low; k <= high; k++) {
 			reference[k] = (BKDTree::super_key_compare(temporary[i], temporary[j], _cur_dim) < 0) ? temporary[i++] : temporary[j--];
 		}
 	}
@@ -218,11 +190,9 @@ void BKDTree::merge_sort(double** reference, double** temporary, const int low, 
 
 int BKDTree::remove_duplicates(double** reference, const int _cur_dim) {
 	int end = 0;
-	for (int j = 1; j < this->nPoints; j++) 
-	{
+	for (int j = 1; j < this->npoints; j++) {
 		double compare = BKDTree::super_key_compare(reference[j], reference[j - 1], _cur_dim);
-		if (compare < 0) 
-		{
+		if (compare < 0) {
 			printf("merge sort failure: super_key_compare(ref[%d], ref[%d]), current lvl=(%d), compare value = %lf\n", j, j - 1, _cur_dim, compare);
 			exit(1);
 		}
@@ -233,78 +203,61 @@ int BKDTree::remove_duplicates(double** reference, const int _cur_dim) {
 
 
 Node* BKDTree::build_tree_recursively(double*** references, double** temp, const int start, const int end,  const int _depth) {
-	// references : already sorted ! 
-	// initial values : start ( 0 ), end ( npoints - 1 )
-	Node* node = (Node*) malloc(sizeof(Node)); // root node
-	int axis = (_depth < this->nDims) ? _depth : _depth - this->nDims; 
-	
-	printf("current depth : %d, max depth : %d, axis : %d\n", _depth, this->maxDepth,axis);
 
-	if(_depth < this->maxDepth) // max_depth ������ node�� �߰��Ѵ�.
-	{
-		if (end == start) // 1개 남았을 때
-		{
-			node        = BKDTree::new_node(references[0][end]);
+	Node* node = (Node*) malloc(sizeof(Node));
+	int axis = _depth % this->ndim;
+	//printf("current depth : %d, max depth : %d\n", _depth, _max_depth);
+
+	if (_depth < this->maxDepth) { // max_depth ������ node�� �߰��Ѵ�.
+		if (end == start) {
+			node = BKDTree::new_node(references[0][end]);
 		}
-		else if (end == start + 1) // 2개 남았을 때
-		{
+		else if (end == start + 1) {
 			node        = BKDTree::new_node(references[0][start]);
 			node->right = BKDTree::new_node(references[0][end]);
 		}
-		else if (end == start + 2) // 3개 남았을 때
-		{
+		else if (end == start + 2) {
 			node        = BKDTree::new_node(references[0][start + 1]);
 			node->left  = BKDTree::new_node(references[0][start]);
 			node->right = BKDTree::new_node(references[0][end]);
 		}
-		else if (end >  start + 2) // 4개 이상 남았을 때
-		{
-			const int median = (start + end) / 2; // 내림된다. ex) (0+5)/2 = 2.5 (x) / 2 (o) , (0+4)/2 = 2
+		else if (end > start + 2) {
+			const int median = (start + end) / 2;
 			node        = BKDTree::new_node(references[0][median]);
 
-			for (int i = start; i <= end; i++)
-			{
+			for (int i = start; i <= end; i++) {
 				temp[i] = references[0][i];
 			}
 
 			int lower, upper, lowerSave, upperSave;
 
-			for (int i = 1; i < this->nDims; i++)
-			{
+			for (int i = 1; i < this->ndim; i++) {
 				lower = start - 1;
 				upper = median;
-
-				for (int j = start; j <= end; j++)
-				{
+				for (int j = start; j <= end; j++) {
 					double compare = BKDTree::super_key_compare(references[i][j], node->point, axis);
-					if (compare < 0) // 만약, references[i][j]가 현재 중심점인 node->point 보다 모든 차원에서 작다면, (한 차원에서만 작아도)
-					{
-						references[i - 1][++lower] = references[i][j]; // 
+					if (compare < 0) {
+						references[i - 1][++lower] = references[i][j];
 					}
-					else if (compare > 0) // 만약, references[i][j]가 현재 중심점인 node->point 보다 모든 차원에서 크다면, (한 차원에서만 커도)
-					{
+					else if (compare > 0) {
 						references[i - 1][++upper] = references[i][j];
 					}
 				}
 				lowerSave = lower;
 				upperSave = upper;
 			}
-
-			for (int i = start; i <= end; i++)
-			{
-				references[this->nDims - 1][i] = temp[i];
+			for (int i = start; i <= end; i++) {
+				references[this->ndim - 1][i] = temp[i];
 			}
 			node->left  = BKDTree::build_tree_recursively(references, temp, start, lower, _depth + 1);
 			node->right = BKDTree::build_tree_recursively(references, temp, median + 1, upper, _depth + 1);
 		}
 	}
-	else // In case of the leaf node.
-	{ 
-		double* temp = (double*)malloc(sizeof(double)*this->nDims);
-		for (int i = 0; i < this->nDims; i++) temp[i] = -3;
+	else { // In case of the leaf node.
+		double* temp = (double*)malloc(sizeof(double)*this->ndim);
+		for (int i = 0; i<this->ndim; i++) temp[i] = 0;
 		node = BKDTree::new_node(temp);
-		node->left   = NULL;
-		node->right  = NULL;
+		node->left = node->right = NULL;
 		node->isLeaf = true;
 		//printf("Leaf exit\n");
 	}
@@ -320,6 +273,7 @@ void BKDTree::insert_leaf_data(Node* node, double* _point, const int _depth, con
 	if (node->isLeaf) { // In case of leaf node, push_back the new point into the node.
 		node->leafData.push_back(_point);
 		point_node = BKDTree::new_point_node(_point, _index);
+
 		node->pointNodes.push_back(point_node);
 		//std::cout << "Point node - index : " << point_node->index << std::endl;
 		node->numOfPoints++ ;
@@ -330,53 +284,47 @@ void BKDTree::insert_leaf_data(Node* node, double* _point, const int _depth, con
 	else { // traveling nodes until reaching the leaf node.
 		free(point_node); // point_node is not used. Therefore, point_node is deleted.
 		if (_point[_depth] <= node->point[_depth]) { // Go to left child
-			BKDTree::insert_leaf_data(node->left,  _point, (_depth + 1) % this->nDims, _index);
+			BKDTree::insert_leaf_data(node->left,  _point, (_depth + 1) % this->ndim, _index);
 		}
 		else { // Go to right child
-			BKDTree::insert_leaf_data(node->right, _point, (_depth + 1) % this->nDims, _index);
+			BKDTree::insert_leaf_data(node->right, _point, (_depth + 1) % this->ndim, _index);
 		}
 	}
 }
 
 
 Node* BKDTree::create_tree(double** _points) {
-	double*** references = (double***)malloc(this->nDims*sizeof(double**));
-	double**  temp       = (double**)malloc(this->nPoints*sizeof(double*));
-	for (int i = 0; i < this->nDims; i++) // dimension
-	{   
-		references[i] = (double**)malloc(this->nPoints*sizeof(double*));
+
+	double*** references = (double***)malloc(this->ndim*sizeof(double**));
+	double** temp = (double**)malloc(this->npoints*sizeof(double));
+	for (int i = 0; i < this->ndim; i++) {   // dimension ��ŭ merge �ؼ� references�� �����Ѵ�.
+		references[i] = (double**)malloc(this->npoints*sizeof(double*));
 		BKDTree::initialize_reference(_points, references[i]);
-		BKDTree::merge_sort(references[i], temp, 0, this->nPoints - 1, i);
+		BKDTree::merge_sort(references[i], temp, 0, this->npoints - 1, i);
 	}
 
-	int *end = (int*)malloc(this->nDims*sizeof(int));
-	for (int i = 0; i< this->nDims; i++) // 트리 구성 중, 완전 동일한 점 삭제.
-	{ 
+	int *end = (int*)malloc(this->ndim*sizeof(int));
+	for (int i = 0; i< this->ndim; i++) { // �ߺ� �� �� �� �������ش�.
 		end[i] = BKDTree::remove_duplicates(references[i], i);
 	}
 
-	for (int i = 0; i < this->nDims - 1; i++) // 만약, 병합정렬 된 모든 차원에서의 end가 같지 않으면, 제대로 removal이 이루어지지 않은 것이므로 에러발생.
-	{
-		for (int j = i + 1; j < this->nDims; j++) 
-		{
-			if (end[i] != end[j]) 
-			{
+	for (int i = 0; i < this->ndim - 1; i++) {
+		for (int j = i + 1; j < this->ndim; j++) {
+			if (end[i] != end[j]) {
 				printf("reference removal error in create_tree\n");
 				exit(1);
 			}
 		}
-	} 
+	} // ���������� ������ ����.
 
-	Node* root = BKDTree::build_tree_recursively(references, temp, 0, end[0], 0); //
+	Node* root = BKDTree::build_tree_recursively(references, temp, 0, end[0], 0); // ���Ⱑ �����ΰ� ?
 
-
-	for (int j = 0; j < this->nPoints; j++) 
-	{
+	for (int j = 0; j < this->npoints; j++) {
 		BKDTree::insert_leaf_data(root, _points[j], 0, j);
+		//std::cout<<j<<std::endl;
 	}
 
-	for (int i = 0; i < this->nDims; i++) 
-	{
+	for (int i = 0; i < this->ndim; i++) {
 		free(references[i]);
 	}
 	free(references);
@@ -389,36 +337,30 @@ Node* BKDTree::create_tree(double** _points) {
 void BKDTree::search_NN_dfs(Node* node, const double* _point_q, const int _depth, int* _index) {
 	PointNode* currPointNode;
 
-	if (node->isLeaf) // In case of leaf node, push_back the new point into the node.
-	{ 
+	if (node->isLeaf) { // In case of leaf node, push_back the new point into the node.
 		double minDist = 1000000000;
 		*_index = -1;
 
-		for (int k = 0; k<node->numOfPoints; k++) 
-		{
+		for (int k = 0; k<node->numOfPoints; k++) {
 			//std::cout<<node->pointNodes[k]->index<<std::endl;
-			double currDist = distance_euclidean(_point_q, node->pointNodes[k]->point, this->nDims);
-			//double currDist = distance_manhattan(_point_q, node->pointNodes[k]->point, this->nDims);
-			if (currDist < minDist) 
-			{
+			double currDist = distance_euclidean(_point_q, node->pointNodes[k]->point, this->ndim);
+			//double currDist = distance_manhattan(_point_q, node->pointNodes[k]->point, this->ndim);
+			if (currDist < minDist) {
 				minDist = currDist;
 				currPointNode = node->pointNodes[k];
 				*_index = node->pointNodes[k]->index;
 
-				if(minDist<=this->distThres) return;
+				if(minDist<=this->dist_thres) return;
 			}
 			//std::cout<<*_index<<std::endl;
 		}
 	}
-	else // traveling nodes until reaching the leaf node.
-	{ 
-		if (_point_q[_depth] <= node->point[_depth]) // Go to left child
-		{ 
-			BKDTree::search_NN_dfs(node->left,  _point_q, (_depth + 1) % this->nDims,_index);
+	else { // traveling nodes until reaching the leaf node.
+		if (_point_q[_depth] <= node->point[_depth]) { // Go to left child
+			BKDTree::search_NN_dfs(node->left,  _point_q, (_depth + 1) % this->ndim,_index);
 		}
-		else  // Go to right child
-		{	
-			BKDTree::search_NN_dfs(node->right, _point_q, (_depth + 1) % this->nDims,_index);
+		else { // Go to right child
+			BKDTree::search_NN_dfs(node->right, _point_q, (_depth + 1) % this->ndim,_index);
 		}
 	}
 	return ;
@@ -428,24 +370,22 @@ void BKDTree::search_NN_dfs_index(Node* _node, const std::vector<std::vector<dou
 
 	int* indexTemp = new int;
 	const double** _points_q;
-	int nPoints_q = _points_q_vec.size();
-	int nDims_q    = _points_q_vec[0].size();
+	int npoints_q = _points_q_vec.size();
+	int ndim_q    = _points_q_vec[0].size();
 	std::vector<int> index_vec;
-	index_vec.reserve(nPoints_q);
+	index_vec.reserve(npoints_q);
 
-	if(nDims_q != this->nDims)
-	{
+	if(ndim_q != this->ndim){
 		printf("Error - query point dimension does not match reference points ! \n");
 		exit(1);
 	}
 
-	double* _point_q = (double*)malloc(sizeof(double)*nDims_q);
-	for(int i = 0; i < nPoints_q; i++)
-	{
-		for(int j = 0; j < nDims_q; j++) _point_q[j] = _points_q_vec[i][j];
+	double* _point_q = (double*)malloc(sizeof(double)*ndim_q);
+	for(int i = 0; i < npoints_q; i++){
+		for(int j = 0; j < ndim_q; j++) _point_q[j] = _points_q_vec[i][j];
 		BKDTree::search_NN_dfs(_node, _point_q, 0, indexTemp);
 		index_vec.push_back(*indexTemp);
-		//std::cout<<index_vec[i]<<std::endl;
+		std::cout<<index_vec[i]<<std::endl;
 	}
 
 
@@ -457,7 +397,7 @@ void BKDTree::search_NN_dfs_index(Node* _node, const std::vector<std::vector<dou
 
 
 void BKDTree::kdtree_nearest_neighbor_approximate(const std::vector<std::vector<double>>& _points_q_vec,  std::vector<int> _index_vec){
-	this->search_NN_dfs_index(this->treeRootNode, _points_q_vec, _index_vec);
+	this->search_NN_dfs_index(this->tree_root, _points_q_vec, _index_vec);
 }
 
 
@@ -469,7 +409,7 @@ int BKDTree::verify_tree(const Node* node, const int _depth)
 		exit(1);
 	}
 	// The partition cycles as x, y, z, w...
-	int axis = _depth % this->nDims;
+	int axis = _depth % this->ndim;
 
 	if (node->left != NULL) {
 		if (node->left->point[axis] > node->point[axis]) {
@@ -500,9 +440,9 @@ int BKDTree::verify_tree(const Node* node, const int _depth)
 
 
 void BKDTree::print_points(const double* _point, const bool _isLeaf) {
-	printf("[ %0.0lf,", _point[0]);
-	for (int i = 1; i<this->nDims - 1; i++) printf("%0.0lf,", _point[i]);
-	printf("%0.0lf ]", _point[this->nDims - 1]);
+	printf("[ %0.0f,", _point[0]);
+	for (int i = 1; i<this->ndim - 1; i++) printf("%0.0f,", _point[i]);
+	printf("%0.0f ]", _point[this->ndim - 1]);
 	if (_isLeaf == true) {
 		printf("< LEAF >");
 	}
@@ -530,7 +470,7 @@ void BKDTree::print_leaf(const Node* node, const int _depth) {
 		if (node->isLeaf) {
 			for (int i = 0; i < node->numOfPoints; i++) {
 				std::cout << "coordinate : [";
-				for (int j = 0; j< this->nDims; j++) {
+				for (int j = 0; j< this->ndim; j++) {
 					std::cout << node->pointNodes[i]->point[j] << ",";
 				}
 				std::cout << " ], index : " << node->pointNodes[i]->index << std::endl;

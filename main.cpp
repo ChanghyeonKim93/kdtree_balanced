@@ -14,6 +14,11 @@ typedef double* Point;
 typedef std::vector<Point> Points;
 
 int main() {
+  printf("\n----------------------------\n");
+  printf("-                          -\n");
+  printf("-      program starts.     -\n");
+  printf("-                          -\n");
+  printf("----------------------------\n\n\n");
 
   clock_t start, finish;
 	std::mt19937 engine((unsigned int)time(NULL));
@@ -21,48 +26,44 @@ int main() {
 	auto generator = std::bind(distribution, engine);
 
 
-	int numOfPoints  = 5000;
-  int numOfQueries = 1000;
-	int ndim =4;
+	int numOfPoints  = 100;
+  int numOfQueries = 500;
+	int ndim = 4;
 
 	std::vector<std::vector<double>> points_vec;
-	for (int i = 0; i < numOfPoints; i++) {
+	for (int i = 0; i < numOfPoints; i++) 
+  {
 		std::vector<double> temp;
-		for (int j = 0; j < ndim; j++) {
-			temp.push_back(generator());
-		}
+		for (int j = 0; j < ndim; j++) temp.push_back(generator());
 		points_vec.push_back(temp);
 	}
 
   std::vector<std::vector<double>> points_q_vec;
-  for (int i = 0; i < numOfQueries; i++) {
+  for (int i = 0; i < numOfQueries; i++) 
+  {
     std::vector<double> temp;
-    for (int j = 0; j < ndim; j++) {
-      temp.push_back(generator());
-      //temp.push_back(j);
-    }
+    for (int j = 0; j < ndim; j++) temp.push_back(generator());
     points_q_vec.push_back(temp);
   }
 
 	double** points = (double**)malloc(numOfPoints*sizeof(double*));
-
-	for (int i = 0; i < numOfPoints; i++) {
+	for (int i = 0; i < numOfPoints; i++) 
+  {
 		points[i] = (double*)malloc(ndim*sizeof(double));
-		for (int j = 0; j< ndim; j++) {
-			points[i][j] = points_vec[i][j];
-		}
+		for (int j = 0; j< ndim; j++) points[i][j] = points_vec[i][j];
 	}
 
 	// tree generation
-	int binSize = 20; // bin size �� �� 10~50 ������ �����ѵ�.
-	int max_depth = (int)round(log2(numOfPoints / binSize));
-  double dist_thres = 5;
-  std::cout << "max depth : " << max_depth << std::endl;
+	int binSize = 4; // bin size �� �� 10~50 ������ �����ѵ�.
+	int maxDepth = (int)ceil( log2(  ceil( (double)numOfPoints / (double)binSize ) ) );
+  double distThres = 5;
+  std::cout<< "max depth : " << maxDepth << std::endl;
+  std::cout<< "Required # of bins: "<<ceil( (double)numOfPoints / (double)binSize )<<", Total capacity: "<<pow(2.0,maxDepth)*binSize<<std::endl;
 
   start = clock();
-  BKDTree* kdtree_handler = new BKDTree(points_vec, binSize,dist_thres);
-  Node* tree_root;
-  tree_root = kdtree_handler->create_tree(points);
+  BKDTree* bkdTree2 = new BKDTree(points_vec, binSize, distThres);
+  //Node* tree_root;
+  //tree_root = kdtree_handler->create_tree(points);
   finish = clock();
   std::cout << "Tree gen elapsed time : " << (finish - start) / 1000.0 << "[ms]"<< std::endl;
 
@@ -70,26 +71,29 @@ int main() {
   start = clock();
   std::vector<int> indexVec;
   indexVec.reserve(numOfPoints);
-  for(int j = 0; j < 50 ; j++){
+  /*for(int j = 0; j < 500 ; j++){
     int* index = new int;
     kdtree_handler->search_NN_dfs_index(tree_root, points_q_vec,indexVec);
-    /*for(int i = 0; i<numOfQueries;i++){
-      kdtree_handler->search_NN_dfs(tree_root, points[j], 0, index);
-    }*/
-  }
+    //for(int i = 0; i<numOfQueries;i++){
+    //  kdtree_handler->search_NN_dfs(tree_root, points[j], 0, index);
+    //}
+  }*/
+  //bkdTree2->kdtree_nearest_neighbor_approximate(points_q_vec, indexVec);
   finish = clock();
+
+  // for(int i = 0; i < indexVec.size(); i++) std::cout<<indexVec[i]<<std::endl;
 
 	std::cout << "Search elapsed time : " << (finish - start) / 1000.0 << "[ms]"<< std::endl;
 	//
-	//print_tree(tree_root,ndim,0);
-	//print_leaf(tree_root,ndim,0);
+	bkdTree2->print_tree(bkdTree2->treeRootNode,0);
+	bkdTree2->print_leaf(bkdTree2->treeRootNode,0);
 
 
 	for (int i = 0; i < numOfPoints; i++) {
 		free(points[i]);
 	}
 	free(points);
-  delete kdtree_handler;
+  delete bkdTree2;
 	std::cout << "Program is running !" << std::endl;
 	return 0;
 }
