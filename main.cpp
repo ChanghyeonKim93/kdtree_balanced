@@ -26,8 +26,8 @@ int main() {
 	auto generator = std::bind(distribution, engine);
 
 
-	int numOfPoints  = 100;
-  int numOfQueries = 500;
+	int numOfPoints  = 6000;
+  int numOfQueries = 1000;
 	int ndim = 4;
 
 	std::vector<std::vector<double>> points_vec;
@@ -42,7 +42,7 @@ int main() {
   for (int i = 0; i < numOfQueries; i++) 
   {
     std::vector<double> temp;
-    for (int j = 0; j < ndim; j++) temp.push_back(generator());
+    for (int j = 0; j < ndim; j++) temp.push_back(points_vec[i][j]+0.05*(generator()-500));
     points_q_vec.push_back(temp);
   }
 
@@ -54,7 +54,7 @@ int main() {
 	}
 
 	// tree generation
-	int binSize = 4; // bin size �� �� 10~50 ������ �����ѵ�.
+	int binSize = 20; // bin size �� �� 10~50 ������ �����ѵ�.
 	int maxDepth = (int)ceil( log2(  ceil( (double)numOfPoints / (double)binSize ) ) );
   double distThres = 5;
   std::cout<< "max depth : " << maxDepth << std::endl;
@@ -71,6 +71,10 @@ int main() {
   start = clock();
   std::vector<int> indexVec;
   indexVec.reserve(numOfPoints);
+  bkdTree2->kdtree_nearest_neighbor_approximate(points_q_vec, indexVec);
+  finish = clock();
+
+
   /*for(int j = 0; j < 500 ; j++){
     int* index = new int;
     kdtree_handler->search_NN_dfs_index(tree_root, points_q_vec,indexVec);
@@ -78,15 +82,14 @@ int main() {
     //  kdtree_handler->search_NN_dfs(tree_root, points[j], 0, index);
     //}
   }*/
-  //bkdTree2->kdtree_nearest_neighbor_approximate(points_q_vec, indexVec);
-  finish = clock();
 
-  // for(int i = 0; i < indexVec.size(); i++) std::cout<<indexVec[i]<<std::endl;
+  std::cout<<"index size:"<<indexVec.size()<<std::endl;
+  for(int i = 0; i < indexVec.size(); i++) std::cout<<indexVec[i]<<std::endl;
 
 	std::cout << "Search elapsed time : " << (finish - start) / 1000.0 << "[ms]"<< std::endl;
 	//
-	bkdTree2->print_tree(bkdTree2->treeRootNode,0);
-	bkdTree2->print_leaf(bkdTree2->treeRootNode,0);
+	//bkdTree2->print_tree(bkdTree2->treeRootNode,0);
+	//bkdTree2->print_leaf(bkdTree2->treeRootNode,0);
 
 
 	for (int i = 0; i < numOfPoints; i++) {

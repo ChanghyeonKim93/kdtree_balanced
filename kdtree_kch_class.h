@@ -54,9 +54,9 @@ public:
 	/// querying nearest neighbor
 public:
 	void search_NN_dfs(Node* node, const double* _point_q, const int _depth, int* _index);
-	void search_NN_dfs_index(Node* _node, const std::vector<std::vector<double>>& _points_q_vec, std::vector<int> _index_vec);
+	void search_NN_dfs_index(Node* _node, const std::vector<std::vector<double>>& _points_q_vec, std::vector<int>& _index_vec);
 
-	void kdtree_nearest_neighbor_approximate(const std::vector<std::vector<double>>& _points_q_vec,  std::vector<int> _index_vec);
+	void kdtree_nearest_neighbor_approximate(const std::vector<std::vector<double>>& _points_q_vec,  std::vector<int>& _index_vec);
 
 	/// For debug
 public:
@@ -111,7 +111,6 @@ BKDTree::BKDTree(const std::vector<std::vector<double>>& _points_vec, const int&
 		this->distThres = _distThres;
 		this->maxDepth  = (int)ceil(log2(  ceil((double)this->nPoints / (double)this->binSize) ) );
 		std::cout<<"\nB k-d tree handler initialization - nPoints : "<<this->nPoints<<", nDims : "<<this->nDims<<", binSize : "<<this->binSize<<", max depth : "<<this->maxDepth<<std::endl<<std::endl;
-		std::cout<<"verification npoints : "<<pow(2,this->maxDepth)*this->binSize<<"\n"<<std::endl;
 		
 		double** points = (double**)malloc(this->nPoints*sizeof(double*)); // change the data type.
 		for (int i = 0; i < this->nPoints; i++)
@@ -238,7 +237,7 @@ Node* BKDTree::build_tree_recursively(double*** references, double** temp, const
 	Node* node = (Node*) malloc(sizeof(Node)); // root node
 	int axis = (_depth < this->nDims) ? _depth : _depth - this->nDims; 
 	
-	printf("current depth : %d, max depth : %d, axis : %d\n", _depth, this->maxDepth,axis);
+	//printf("current depth : %d, max depth : %d, axis : %d\n", _depth, this->maxDepth,axis);
 
 	if(_depth < this->maxDepth) // max_depth ������ node�� �߰��Ѵ�.
 	{
@@ -374,7 +373,7 @@ Node* BKDTree::create_tree(double** _points) {
 	{
 		BKDTree::insert_leaf_data(root, _points[j], 0, j);
 	}
-
+	
 	for (int i = 0; i < this->nDims; i++) 
 	{
 		free(references[i]);
@@ -424,7 +423,7 @@ void BKDTree::search_NN_dfs(Node* node, const double* _point_q, const int _depth
 	return ;
 }
 
-void BKDTree::search_NN_dfs_index(Node* _node, const std::vector<std::vector<double>>& _points_q_vec, std::vector<int> _index_vec){
+void BKDTree::search_NN_dfs_index(Node* _node, const std::vector<std::vector<double>>& _points_q_vec, std::vector<int>& _index_vec){
 
 	int* indexTemp = new int;
 	const double** _points_q;
@@ -439,24 +438,25 @@ void BKDTree::search_NN_dfs_index(Node* _node, const std::vector<std::vector<dou
 		exit(1);
 	}
 
-	double* _point_q = (double*)malloc(sizeof(double)*nDims_q);
+	double* _point_q = (double*)malloc(sizeof(double)*this->nDims);
 	for(int i = 0; i < nPoints_q; i++)
 	{
-		for(int j = 0; j < nDims_q; j++) _point_q[j] = _points_q_vec[i][j];
+		for(int j = 0; j < this->nDims; j++) _point_q[j] = _points_q_vec[i][j];
 		BKDTree::search_NN_dfs(_node, _point_q, 0, indexTemp);
 		index_vec.push_back(*indexTemp);
-		//std::cout<<index_vec[i]<<std::endl;
+		_index_vec.push_back(*indexTemp);
+		// std::cout<<index_vec[i]<<std::endl;
 	}
 
 
 	delete indexTemp;
-	_index_vec.swap(index_vec);
+	//_index_vec.swap(index_vec);
 
 	return; // void return
 }
 
 
-void BKDTree::kdtree_nearest_neighbor_approximate(const std::vector<std::vector<double>>& _points_q_vec,  std::vector<int> _index_vec){
+void BKDTree::kdtree_nearest_neighbor_approximate(const std::vector<std::vector<double>>& _points_q_vec,  std::vector<int>& _index_vec){
 	this->search_NN_dfs_index(this->treeRootNode, _points_q_vec, _index_vec);
 }
 
