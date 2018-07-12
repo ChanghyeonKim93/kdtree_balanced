@@ -41,6 +41,7 @@
         "type_traits": "cpp",
         "tuple": "cpp",
         "typeindex": "cpp",
-        "typeinfo": "cpp"
+        "typeinfo": "cpp",
+        "deque": "cpp"
     }
 }
