@@ -16,6 +16,22 @@ inline double distance_manhattan(const std::vector<double>& _point_q, const std:
 	return temp;
 }
 
+double** double_array_allocator_2d(int npoints, int ndim)
+{
+	double** ptr = new double*[npoints];
+	for(int i = 0; i < npoints; i++) ptr[i] = new double[ndim];
+	return ptr;
+	printf("this->points : allocated. Memory size : %d\n", sizeof(double)*npoints*ndim);
+}
+
+void double_array_delete_2d(double** ptr, int npoints)
+{
+	for(int i = 0; i < npoints; i++) delete[] ptr[i];
+	delete[] ptr;
+	printf("this->points : deleted.\n");
+}
+
+
 typedef struct _PointNode {
 	int index;
 	std::vector<double> point;
@@ -46,6 +62,7 @@ public:
 	int binSize;
 	int maxDepth;
 	double distThres;
+	double** points;
 
 	Node* treeRootNode;
 	std::vector<Node*> nodesPtrs; // carry all addresses of nodes.
@@ -115,12 +132,11 @@ BKDTree::BKDTree(const std::vector<std::vector<double>>& _points_vec, const int&
 		printf("binSize:%d, ",this->binSize);
 		printf("max Depth:%d\n\n",this->maxDepth);
 		
-		double** points = (double**)malloc(this->nPoints*sizeof(double*)); // change the data type.
+		points = double_array_allocator_2d(this->nPoints, this->nDims); // change the data type.
+
 		for (int i = 0; i < this->nPoints; i++)
-		{
-			points[i] = (double*)malloc(this->nDims*sizeof(double));
 			for (int j = 0; j < this->nDims; j++) points[i][j] = _points_vec[i][j];
-		}
+		
 
 		this->nodesPtrs.reserve(0);
 
@@ -134,12 +150,13 @@ BKDTree::BKDTree(const std::vector<std::vector<double>>& _points_vec, const int&
 
 BKDTree::~BKDTree(){
 	//BKDTree::delete_malloc();
+	double_array_delete_2d(this->points, this->nPoints);
 	printf("\nB k-d tree handler is deleted !\n\n");
 }
 
 Node* BKDTree::new_node(double* _point) { // send the node address 
-	Node* node;
-	if ( (node = (Node*)malloc(sizeof(Node))) == NULL) 
+	Node* node = NULL;
+	if ( (node = new Node() ) == NULL) 
 	{
 		printf("error allocating new Node ! \n");
 		exit(1);
@@ -152,9 +169,9 @@ Node* BKDTree::new_node(double* _point) { // send the node address
 	// allocating the new point by deep copying.
 	for(int i = 0; i<this->nDims; i++)
 	{
-		node->refPoint.push_back(*(_point+i));
-		//std::cout<<",in double : "<<*(_point+i)<<", vec : "<<node->refPoint[i]<<std::endl;
-	} 
+		node->refPoint.push_back(_point[i]);
+		//std::cout<<",in double : "<<_point[i]<<", vec : "<<node->refPoint[i]<<std::endl;
+	}
 
 	//node->pointNodes.resize(0,0);
 	node->numOfPoints = 0;
@@ -164,8 +181,8 @@ Node* BKDTree::new_node(double* _point) { // send the node address
 }
 
 PointNode* BKDTree::new_point_node(double* _point, int _index) {
-	PointNode* point_node;
-	if( (point_node = (PointNode*)malloc(sizeof(PointNode)))  == NULL) 
+	PointNode* pointNode = NULL;
+	if( (pointNode = new PointNode() ) == NULL) 
 	{
 		printf("error allocating new PointNode ! \n");
 		exit(1);
@@ -173,23 +190,23 @@ PointNode* BKDTree::new_point_node(double* _point, int _index) {
 
 	// initialize the data
 	for(int i = 0; i < this->nDims; i++){
- 		point_node->point.push_back(*(_point+i));
-		std::cout<<",,in double : "<<*(_point+i)<<", vec : "<<point_node->point[i]<<std::endl;
+ 		pointNode->point.push_back(_point[i]);
+		std::cout<<",,in double : "<<_point[i]<<", vec : "<<pointNode->point[i]<<std::endl;
 	}
-	point_node->index = _index;
+	pointNode->index = _index;
 
-	return point_node;
+	return pointNode;
 }
 
 Node* BKDTree::new_leaf_node(const double& dummyNum) { // send the node address 
-	Node* node;
-	if ( (node = (Node*)malloc(sizeof(Node))) == NULL) 
+	Node* node = NULL;
+	if ( (node = new Node() ) == NULL) 
 	{
 		printf("error allocating new Node ! \n");
 		exit(1);
 	}
 	// initialize the data
-	node->refPoint.reserve(0);
+	// node->refPoint.reserve(0);
 	node->left     = NULL;
 	node->right    = NULL;
 
@@ -207,7 +224,8 @@ Node* BKDTree::new_leaf_node(const double& dummyNum) { // send the node address
 void BKDTree::initialize_reference(double** _points, double** reference) {
 	for (int i = 0; i<this->nPoints; i++)
 	{
-		reference[i] = (double*)malloc(sizeof(double)*this->nDims);
+		reference[i] = new double[this->nDims];
+		// reference[i] = (double*)malloc(sizeof(double)*this->nDims);
 		for(int j = 0; j<this->nDims; j++)
 		{
 			reference[i][j] = _points[i][j];
@@ -290,7 +308,7 @@ void BKDTree::insert_leaf_data(Node* node, double* _point, const int _depth, con
 	
 	if (node->isLeaf == true) // In case of leaf node, push_back the new point into the node.
 	{ 
-		PointNode* point_node = (PointNode*) malloc(sizeof(PointNode));
+		PointNode* point_node ;//= (PointNode*) malloc(sizeof(PointNode));
 		point_node = BKDTree::new_point_node(_point, _index);
 		node->pointNodes.push_back(point_node);
 		std::cout<<"pointnode coordi:";
@@ -453,11 +471,15 @@ Node* BKDTree::build_tree_recursively(double*** references, double** temp, const
 }
 
 Node* BKDTree::create_tree(double** _points) {
-	double*** references = (double***)malloc(this->nDims*sizeof(double**));
-	double**  temp       = (double**)malloc(this->nPoints*sizeof(double*));
+	double*** references = new double**[this->nDims];
+	double**  temp       = new double*[this->nPoints]; 
+	//double*** references = (double***)malloc(this->nDims*sizeof(double**));
+	//double**  temp       = (double**)malloc(this->nPoints*sizeof(double*));
+
 	for (int i = 0; i < this->nDims; i++) // dimension
 	{   
-		references[i] = (double**)malloc(this->nPoints*sizeof(double*));
+		references[i] = new double*[this->nPoints];
+		//references[i] = (double**)malloc(this->nPoints*sizeof(double*));
 		BKDTree::initialize_reference(_points, references[i]);
 		BKDTree::merge_sort(references[i], temp, (long)0, (long)this->nPoints - 1, i);
 	}
@@ -498,26 +520,25 @@ Node* BKDTree::create_tree(double** _points) {
 	// insert point data into leaf nodes.
 	for (int i = 0; i < this->nPoints; i++) 
 	{
+		std::cout<<"point : ";
+		for (int j = 0; j < this->nDims; j++)
+		{
+			std::cout<<_points[i][j]<<", ";
+		}
+		std::cout<<std::endl;
 		//BKDTree::insert_leaf_data(root, _points[i], 0, i);
 	}
 	
 	// delete temporary arrays.
-	/*for (int i = 0; i < this->nDims; i++) 
+	for (int i = 0; i < this->nDims; i++) 
 	{
-		for (int j = 0; j< this->nPoints; j++)
-		{
-			free(references[i][j]);
-		}
 		free(references[i]);
 	}
 	free(references);
 
-	for (int i = 0; i < this->nPoints; i++)
-	{
-		free(temp[i]);
-	}
+	
 	free(temp);
-	*/
+	
 	return root;
 }
 
@@ -529,13 +550,13 @@ void BKDTree::delete_malloc() {
 	
 	for(int i = 0; i < numNodes; i++)
 	{
-		/*if(this->nodesPtrs[i]->isLeaf==true)
+		if(this->nodesPtrs[i]->isLeaf==true)
 		{
 			for(int j = 0; j < this->nodesPtrs[i]->pointNodes.size(); j++) // delete pointNodes.
 			{
 				free(this->nodesPtrs[i]->pointNodes[j]);
 			}
-		}*/
+		}
 		free(this->nodesPtrs[i]); // finally, delete nodes.
 	}	
 	printf("All memories of nodes and pointNodes are returned !\n");
