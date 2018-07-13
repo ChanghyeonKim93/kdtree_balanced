@@ -128,20 +128,20 @@ BKDTree::BKDTree(const std::vector<std::vector<double>>& _points_vec, const int&
 		this->maxDepth  = (int)ceil(log2(  ceil((double)this->nPoints / (double)this->binSize) ) );
 
 		printf("\n (IN CLASS) B k-d tree handler initialization - nPoints:%d, ",this->nPoints);
-		printf("nDims:%d, ",this->nDims);
-		printf("binSize:%d, ",this->binSize);
-		printf("max Depth:%d\n\n",this->maxDepth);
+		printf("nDims:%d, ",       this->nDims);
+		printf("binSize:%d, ",     this->binSize);
+		printf("max Depth:%d\n\n", this->maxDepth);
 		
 		points = double_array_allocator_2d(this->nPoints, this->nDims); // change the data type.
 
 		for (int i = 0; i < this->nPoints; i++)
-			for (int j = 0; j < this->nDims; j++) points[i][j] = _points_vec[i][j];
+			for (int j = 0; j < this->nDims; j++) this->points[i][j] = _points_vec[i][j];
 		
 
 		this->nodesPtrs.reserve(0);
 
 		// Create a tree and allocate the treeRootNode address
-		this->treeRootNode = this->create_tree(points); 
+		this->treeRootNode = this->create_tree(this->points); 
 		
 		// free the memory.
 		//for(int i= 0; i < this->nPoints; i++) free(points[i]);
@@ -222,13 +222,13 @@ Node* BKDTree::new_leaf_node(const double& dummyNum) { // send the node address
 
 
 void BKDTree::initialize_reference(double** _points, double** reference) {
-	for (int i = 0; i<this->nPoints; i++)
+	for (int j = 0; j < this->nPoints; j++)
 	{
-		reference[i] = new double[this->nDims];
+		reference[j] = new double[this->nDims];
 		// reference[i] = (double*)malloc(sizeof(double)*this->nDims);
-		for(int j = 0; j<this->nDims; j++)
+		for(int k = 0; k < this->nDims; k++)
 		{
-			reference[i][j] = _points[i][j];
+			reference[j][k] = _points[j][k];
 		}
 	}
 }
@@ -479,7 +479,6 @@ Node* BKDTree::create_tree(double** _points) {
 	for (int i = 0; i < this->nDims; i++) // dimension
 	{   
 		references[i] = new double*[this->nPoints];
-		//references[i] = (double**)malloc(this->nPoints*sizeof(double*));
 		BKDTree::initialize_reference(_points, references[i]);
 		BKDTree::merge_sort(references[i], temp, (long)0, (long)this->nPoints - 1, i);
 	}
@@ -497,7 +496,7 @@ Node* BKDTree::create_tree(double** _points) {
 	}
 	*/
 
-	int *end = (int*)malloc(this->nDims*sizeof(int));
+	int* end = new int[this->nDims];
 	for (int i = 0; i< this->nDims; i++) // 트리 구성 중, 완전 동일한 점 삭제.
 	{ 
 		end[i] = BKDTree::remove_duplicates(references[i], i);
@@ -532,13 +531,18 @@ Node* BKDTree::create_tree(double** _points) {
 	// delete temporary arrays.
 	for (int i = 0; i < this->nDims; i++) 
 	{
-		free(references[i]);
+		for (int j=0; j < this->nPoints; j++)
+		{
+			delete[] references[i][j];
+		}
+		delete[] references[i];
 	}
-	free(references);
+	delete[] references;
 
-	
-	free(temp);
-	
+
+	double_array_delete_2d(temp, this->nPoints);
+	printf("in create_tree , temp : deleted.\n");
+	delete[] end;
 	return root;
 }
 

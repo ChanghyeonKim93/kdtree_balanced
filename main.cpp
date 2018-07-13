@@ -21,11 +21,11 @@ int main() {
 	std::uniform_real_distribution<> distribution(1.0, 1000.0);
 	auto generator = std::bind(distribution, engine);
 
-	int numOfPoints  = 2000;
+	int numOfPoints  = 100;
   int numOfQueries = 1;
 	int ndim         = 4;
 
-	int binSize      = 5; // bin size �� �� 10~50 ������ �����ѵ�.
+	int binSize      = 1; // bin size �� �� 10~50 ������ �����ѵ�.
   double distThres = 20;
 	int maxDepth     = (int)ceil( log2(  ceil( (double)numOfPoints / (double)binSize ) ) );
 
@@ -79,6 +79,16 @@ int main() {
 	std::cout << "Program is running !" << std::endl;
 	return 0;
 }
+
+
+
+
+
+/** 
+ * 
+ * functions
+ * 
+ */
 
 void print_start()
 {
