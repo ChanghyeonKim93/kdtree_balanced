@@ -28,7 +28,24 @@ void double_array_delete_2d(double** ptr, int npoints)
 {
 	for(int i = 0; i < npoints; i++) delete[] ptr[i];
 	delete[] ptr;
-	printf("this->points : deleted.\n");
+	//printf("this->points : deleted.\n");
+}
+
+
+void double_array_delete_3d(double*** ptr, int ndims, int npoints)
+{
+	printf("ndims : %d, npoints : %d\n", ndims, npoints);
+
+	for(int i = 0; i < ndims; i++)
+	{
+		for(int j = 0; j < npoints; j++)
+		{
+			delete[] ptr[i][j];
+		}
+		delete[] ptr[i];
+	}
+	delete[] ptr;
+	printf("[INFO] DELETION - this->references : deleted.\n");
 }
 
 
@@ -61,6 +78,7 @@ public:
 	int nDims;
 	int binSize;
 	int maxDepth;
+	int nNodes;
 	double distThres;
 	double** points;
 
@@ -88,7 +106,7 @@ private:
 	void initialize_reference(double** _points, double** reference);
 	PointNode* new_point_node(double* _point, int _index);
 	Node* new_node(double* _point);
-	Node* new_leaf_node(const double& dummyNum);
+	Node* new_node_leaf(const double& dummyNum);
 	void merge_sort(double** reference, double** temporary, const long low, const long high, const int _cur_dim);
 	void insert_leaf_data(Node* node, double* _point, const int _depth, const int _index);
 	int remove_duplicates(double** reference, const int _cur_dim);
@@ -96,7 +114,7 @@ private:
 	double super_key_compare(const double* _point_a, double* _point_b, const int _cur_dim);
 
 	Node* build_tree_recursively(double*** references, double** temp, const int start, const int end, const int _depth);
-	void delete_malloc();
+	void delete_node_recursively(Node* node);
 };
 
 
@@ -127,31 +145,27 @@ BKDTree::BKDTree(const std::vector<std::vector<double>>& _points_vec, const int&
 		this->distThres = _distThres;
 		this->maxDepth  = (int)ceil(log2(  ceil((double)this->nPoints / (double)this->binSize) ) );
 
-		printf("\n (IN CLASS) B k-d tree handler initialization - nPoints:%d, ",this->nPoints);
+		this->nNodes    = 0;
+
+		printf("\n[INFO] (IN CLASS) Balanced k-d tree handler initialization - nPoints:%d, ",this->nPoints);
 		printf("nDims:%d, ",       this->nDims);
 		printf("binSize:%d, ",     this->binSize);
 		printf("max Depth:%d\n\n", this->maxDepth);
 		
-		points = double_array_allocator_2d(this->nPoints, this->nDims); // change the data type.
+		this->points = NULL;
+		this->points = double_array_allocator_2d( this->nPoints, this->nDims ); // change the data type.
 
 		for (int i = 0; i < this->nPoints; i++)
 			for (int j = 0; j < this->nDims; j++) this->points[i][j] = _points_vec[i][j];
 		
-
-		this->nodesPtrs.reserve(0);
-
-		// Create a tree and allocate the treeRootNode address
-		this->treeRootNode = this->create_tree(this->points); 
-		
-		// free the memory.
-		//for(int i= 0; i < this->nPoints; i++) free(points[i]);
-		//free(points);
+		this->treeRootNode = this->create_tree(this->points); // Create a tree and allocate the treeRootNode address
 }
 
 BKDTree::~BKDTree(){
-	//BKDTree::delete_malloc();
 	double_array_delete_2d(this->points, this->nPoints);
-	printf("\nB k-d tree handler is deleted !\n\n");
+	printf("[INFO] DELETION - Total # of existing nodes: %d\n", this->nNodes);
+	delete_node_recursively(this->treeRootNode);
+	printf("[INFO] DELETION - Balanced k-d tree handler is deleted !\n\n");
 }
 
 Node* BKDTree::new_node(double* _point) { // send the node address 
@@ -162,16 +176,12 @@ Node* BKDTree::new_node(double* _point) { // send the node address
 		exit(1);
 	}
 	// initialize the data
-	//node->refPoint.reserve(this->nDims);
+	node->refPoint.reserve(this->nDims);
 	node->left     = NULL;
 	node->right    = NULL;
 
 	// allocating the new point by deep copying.
-	for(int i = 0; i<this->nDims; i++)
-	{
-		node->refPoint.push_back(_point[i]);
-		//std::cout<<",in double : "<<_point[i]<<", vec : "<<node->refPoint[i]<<std::endl;
-	}
+	for(int i = 0; i<this->nDims; i++) node->refPoint.push_back(_point[i]);
 
 	//node->pointNodes.resize(0,0);
 	node->numOfPoints = 0;
@@ -182,38 +192,36 @@ Node* BKDTree::new_node(double* _point) { // send the node address
 
 PointNode* BKDTree::new_point_node(double* _point, int _index) {
 	PointNode* pointNode = NULL;
-	if( (pointNode = new PointNode() ) == NULL) 
+	if( (pointNode = new PointNode() ) == NULL)
 	{
 		printf("error allocating new PointNode ! \n");
 		exit(1);
 	}
 
 	// initialize the data
-	for(int i = 0; i < this->nDims; i++){
- 		pointNode->point.push_back(_point[i]);
-		std::cout<<",,in double : "<<_point[i]<<", vec : "<<pointNode->point[i]<<std::endl;
-	}
+	for(int i = 0; i < this->nDims; i++) pointNode->point.push_back(_point[i]);
+	
 	pointNode->index = _index;
 
 	return pointNode;
 }
 
-Node* BKDTree::new_leaf_node(const double& dummyNum) { // send the node address 
+Node* BKDTree::new_node_leaf(const double& inputNum) { // send the node address 
 	Node* node = NULL;
-	if ( (node = new Node() ) == NULL) 
+	if ( (node = new Node() ) == NULL)
 	{
 		printf("error allocating new Node ! \n");
 		exit(1);
 	}
 	// initialize the data
-	// node->refPoint.reserve(0);
+	node->refPoint.reserve(this->nDims);
 	node->left     = NULL;
 	node->right    = NULL;
 
 	// allocating the new point by deep copying.
-	for(int i = 0; i<this->nDims; i++) node->refPoint.push_back(dummyNum);
+	for(int i = 0; i < this->nDims; i++) node->refPoint.push_back(inputNum);
 
-	node->pointNodes.resize(0,0);
+	// node->pointNodes.resize(0,0);
 	node->numOfPoints = 0;
 	node->isLeaf      = true;
 
@@ -223,14 +231,7 @@ Node* BKDTree::new_leaf_node(const double& dummyNum) { // send the node address
 
 void BKDTree::initialize_reference(double** _points, double** reference) {
 	for (int j = 0; j < this->nPoints; j++)
-	{
-		reference[j] = new double[this->nDims];
-		// reference[i] = (double*)malloc(sizeof(double)*this->nDims);
-		for(int k = 0; k < this->nDims; k++)
-		{
-			reference[j][k] = _points[j][k];
-		}
-	}
+		for(int k = 0; k < this->nDims; k++) reference[j][k] = _points[j][k];			
 }
 
 
@@ -261,24 +262,28 @@ double BKDTree::super_key_compare(const double* _point_a, double* _point_b, cons
 
 void BKDTree::merge_sort(double** reference, double** temporary, const long low, const long high, const int _cur_dim) {
 	long i, j, k;
-
-	if (high > low) 
+	double* pointTemp = NULL;
+	if (high > low)
 	{
-		const long mid = low + ((high - low) >> 1);
+		const long mid = low + ( (high - low) >> 1 );
 		merge_sort(reference, temporary, low,     mid,  _cur_dim);
 		merge_sort(reference, temporary, mid + 1, high, _cur_dim);
 
 		for (i = mid + 1; i > low; i--)
 		{
-			temporary[i - 1] = reference[i - 1];
+			for(int m=0;m < this->nDims; m++) temporary[i - 1][m] = reference[i - 1][m];
+			//temporary[i - 1] = reference[i - 1];
 		}
 		for (j = mid; j < high; j++)
 		{
-			temporary[mid + high - j] = reference[j + 1];
+			for(int m=0;m < this->nDims; m++) temporary[mid + high - j][m] = reference[j + 1][m];
+			//temporary[mid + high - j] = reference[j + 1];
 		}
 		for (k = low; k <= high; k++)
 		{
-			reference[k] = (BKDTree::super_key_compare(temporary[i], temporary[j], _cur_dim) < 0) ? temporary[i++] : temporary[j--];
+			pointTemp = (BKDTree::super_key_compare(temporary[i], temporary[j], _cur_dim) < 0) ? temporary[i++] : temporary[j--];
+			for(int m = 0; m < this->nDims; m++) reference[k][m] = pointTemp[m];
+			//reference[k] = (BKDTree::super_key_compare(temporary[i], temporary[j], _cur_dim) < 0) ? temporary[i++] : temporary[j--];
 		}
 	}
 }
@@ -308,24 +313,20 @@ void BKDTree::insert_leaf_data(Node* node, double* _point, const int _depth, con
 	
 	if (node->isLeaf == true) // In case of leaf node, push_back the new point into the node.
 	{ 
-		PointNode* point_node ;//= (PointNode*) malloc(sizeof(PointNode));
+		PointNode* point_node = NULL ;//= (PointNode*) malloc(sizeof(PointNode));
 		point_node = BKDTree::new_point_node(_point, _index);
 		node->pointNodes.push_back(point_node);
-		std::cout<<"pointnode coordi:";
-		for(int j=0;j<this->nDims;j++) std::cout<<point_node->point[j]<<",";
-		std::cout << "\nPoint node - index : " << point_node->index << std::endl;
 		node->numOfPoints++;
-		//std::cout << "reach the leaf, " << node << " , " << node->numOfPoints << "," << std::endl;
+
+		//std::cout << "reach the leaf, " << node << " , " << node->numOfPoints << ", size : " << node->pointNodes.size() << std::endl;
 		// memory problem? Linux shows no problems.
 	}
 	else // traveling nodes until reaching the leaf node.
-	{ 
+	{
 		if (_point[_depth] <= node->refPoint[_depth]) // Go to left child
 		{
 			BKDTree::insert_leaf_data(node->left,  _point, (_depth + 1) % this->nDims, _index);
-		}
-		else // Go to right child
-		{
+		} else {// Go to right child
 			BKDTree::insert_leaf_data(node->right, _point, (_depth + 1) % this->nDims, _index);
 		}
 	}
@@ -335,65 +336,68 @@ void BKDTree::insert_leaf_data(Node* node, double* _point, const int _depth, con
 Node* BKDTree::build_tree_recursively(double*** references, double** temp, const int start, const int end,  const int _depth) {
 	// references : already sorted ! 
 	// initial values : start ( 0 ), end ( npoints - 1 )
-	Node* node;
-	// = (Node*)malloc(sizeof(Node)); // root node
+	Node* node = NULL; // root node
 	//int axis = (_depth < this->nDims) ? _depth : _depth - this->nDims; 
 	int axis = _depth % this->nDims;
-	std::cout<<"axis: "<<axis<<std::endl;
-	
+
+	//std::cout<<"axis: "<<axis<<std::endl;
 	//printf("current depth : %d, max depth : %d, axis : %d\n", _depth, this->maxDepth,axis);
 
 	if(_depth < this->maxDepth) // If the depth does not reach to max_depth.
 	{
 		if (end == start) // 1개 남았을 때
 		{
-			std::cout<<"end == start"<<std::endl;
-			node        = BKDTree::new_leaf_node(-1);
-			//this->nodesPtrs.push_back(node);
+			std::cout << "end == start" << std::endl;
+			node        = BKDTree::new_node_leaf(-1);
+			this->nNodes += 1;
 		}
 		else if (end == start + 1) // 2개 남았을 때
 		{
-			std::cout<<"end == start+1"<<std::endl;
-			for(int i =0;i<this->nDims;i++) std::cout<<references[0][start][i]<<", ";
-			std::cout<<std::endl;
+			//std::cout<<"end == start+1"<<std::endl;
+			//for(int i =0; i < this->nDims; i++) std::cout<<references[0][start][i]<<", ";
+			//std::cout<<std::endl;
+			
 			node        = BKDTree::new_node(references[0][start]);
-			node->right = BKDTree::new_leaf_node(-2);
-			node->left  = BKDTree::new_leaf_node(-2);
-			std::cout<<node<<","<<node->right<<","<<node->left<<std::endl;
+			node->right = BKDTree::new_node_leaf(-2);
+			node->left  = BKDTree::new_node_leaf(-2);
+			
+			//std::cout<<node<<", "<<node->right<<","<<node->left<<std::endl;
 
-			//this->nodesPtrs.push_back(node);
-			//this->nodesPtrs.push_back(node->right);
-			//this->nodesPtrs.push_back(node->left);
+			this->nNodes += 3;
 		}
 		else if (end == start + 2) // 3개 남았을 때
 		{
-			std::cout<<"end == start+2"<<std::endl;
-			
+			//std::cout<<"end == start+2"<<std::endl;
+			//for(int i = 0; i < this->nDims; i++) std::cout << node->right->refPoint[i] << ", ";
+			//std::cout<<std::endl;
+
 			node        = BKDTree::new_node(references[0][start + 1]);
-			node->right = BKDTree::new_leaf_node(-3.0);
-			node->left  = BKDTree::new_leaf_node(-3.0);
-			for(int i = 0; i < this->nDims; i++) std::cout<<node->right->refPoint[i]<<", ";
-			std::cout<<std::endl;
-			//this->nodesPtrs.push_back(node);
-			//this->nodesPtrs.push_back(node->right);
-			//this->nodesPtrs.push_back(node->left);
+			node->right = BKDTree::new_node_leaf(-3.0);
+			node->left  = BKDTree::new_node_leaf(-3.0);
+
+			this->nNodes += 3;
 		}
 		else if (end >  start + 2) // 4개 이상 남았을 때
 		{
-			std::cout<<"end > start+2"<<std::endl;
+			//std::cout<<"end > start+2"<<std::endl;
 			const int median = start + ( (end - start) / 2); // 내림된다. ex) (0+5)/2 = 2.5 (x) / 2 (o) , (0+4)/2 = 2
 			node = BKDTree::new_node(references[0][median]);
+
+			this->nNodes += 1;
+
 			//std::cout<<"reference median: "<<std::endl;
 			//for(int k = 0; k < this->nDims; k++) std::cout<<references[0][median][k]<<std::endl;
 
 			for (int i = start; i <= end; i++)
 			{
-				temp[i] = references[0][i];
+				//for(int m = 0; m < this->nDims; m++)
+				//{
+				//	temp[i][m] = references[0][i][m];
+				//}
+				temp[i] = references[0][i]; //  여기가 문제 있어 보임.
+				//std::cout<<"temp add.: "<<temp[i]<<", ref. add. : "<<references[0][i]<<std::endl;
 			}
 
-			double* pointTemp = (double*)malloc(this->nDims*sizeof(double));
-			for(int k = 0; k < this->nDims; k++) pointTemp[k] = references[0][median][k]; // 여기가 문제 씨빨
-			//for(int k = 0; k < this->nDims; k++) std::cout<< pointTemp[k] <<std::endl;  // 이상하게 node->refPoint 에 데이터 할당이 잘 안된다 ... 왜그런거지 ? 씨발 ? 
 			int lower, upper, lowerSave, upperSave;
 
 			for(int i = 1; i < this->nDims; i++)
@@ -403,7 +407,7 @@ Node* BKDTree::build_tree_recursively(double*** references, double** temp, const
 				
 				for (int j = start; j <= end; j++)
 				{
-					double compare = BKDTree::super_key_compare(references[i][j], pointTemp, axis);
+					double compare = BKDTree::super_key_compare(references[i][j], references[0][median], axis);
 					//std::cout<<"cur dim: "<<i <<" ref : "<<references[i][j][axis]<<", current : "<<pointTemp[axis] <<" COMPARE : "<<compare<<" === ";
 					if (compare < 0) // 만약, references[i][j]가 현재 중심점인 node->point 보다 모든 차원에서 작다면, (한 차원에서만 작아도)
 					{
@@ -447,24 +451,26 @@ Node* BKDTree::build_tree_recursively(double*** references, double** temp, const
 
 			for (int i = start; i <= end; i++)
 			{
+				//for(int m = 0; m < this->nDims; m++)
+				//{
+				//	references[this->nDims - 1][i][m] = temp[i][m];
+				//}
 				references[this->nDims - 1][i] = temp[i];
 			}
 			//std::cout<<" LEFT start: "<<start<<", lower: "<<lower<<", depth: "<<_depth<<std::endl;
 			node->left  = BKDTree::build_tree_recursively(references, temp, start, lower, _depth + 1);
 			//std::cout<<" RIGHT median+1: "<<median+1<<", upper: "<<upper<<", depth: "<<_depth<<std::endl;
 			node->right = BKDTree::build_tree_recursively(references, temp, median + 1, upper, _depth + 1);
-
-			//this->nodesPtrs.push_back(node);
-			//if(node->left != NULL)  this->nodesPtrs.push_back(node->left);
-			//if(node->right != NULL) this->nodesPtrs.push_back(node->right);
 		}
 	}
 	else // In case of the leaf node.
 	{
-		std::cout<<" [LEAF NODE], depth: "<<_depth<<std::endl;
-		node = BKDTree::new_leaf_node(-9);
-		this->nodesPtrs.push_back(node);
-		//printf("Leaf exit\n");
+		//printf(" [LEAF NODE], depth: %d\n",_depth);
+		//printf("Leaf exits\n");
+
+		node = BKDTree::new_node_leaf(-9);
+		
+		this->nNodes += 1;
 	}
 
 	return node; // tree root �� �� ���̴�.
@@ -472,32 +478,44 @@ Node* BKDTree::build_tree_recursively(double*** references, double** temp, const
 
 Node* BKDTree::create_tree(double** _points) {
 	double*** references = new double**[this->nDims];
+	double*** referencesFixedOrder = new double**[this->nDims];
 	double**  temp       = new double*[this->nPoints]; 
 	//double*** references = (double***)malloc(this->nDims*sizeof(double**));
 	//double**  temp       = (double**)malloc(this->nPoints*sizeof(double*));
 
+	for (int i = 0; i < this->nPoints; i++)
+	{
+		temp[i] = new double[this->nDims];
+	}
+
 	for (int i = 0; i < this->nDims; i++) // dimension
 	{   
 		references[i] = new double*[this->nPoints];
+		referencesFixedOrder[i] = new double*[this->nPoints];
+		for (int j = 0; j < this->nPoints; j++)
+		{
+			references[i][j] = new double[this->nDims];
+			referencesFixedOrder[i][j] = references[i][j];
+		}
+
 		BKDTree::initialize_reference(_points, references[i]);
 		BKDTree::merge_sort(references[i], temp, (long)0, (long)this->nPoints - 1, i);
 	}
 	
 	// display sorted array.
-	/*
 	for(int i = 0; i < this->nDims; i++)  
 	{
-		std::cout<<"  current dim : "<<i<<std::endl;
-		for(int j = 0; j < this->nPoints; j++)
-		{
-			std::cout<<references[i][j][i]<<std::endl;
-		}
-		printf("\n");
+		//std::cout<<"  current dim : "<<i<<std::endl;
+		//for(int j = 0; j < this->nPoints; j++)
+		//{
+		//	std::cout << references[i][j][i] << std::endl;
+		//}
+		//printf("\n");
 	}
-	*/
+	
 
 	int* end = new int[this->nDims];
-	for (int i = 0; i< this->nDims; i++) // 트리 구성 중, 완전 동일한 점 삭제.
+	for (int i = 0; i < this->nDims; i++) // 트리 구성 중, 완전 동일한 점 삭제.
 	{ 
 		end[i] = BKDTree::remove_duplicates(references[i], i);
 	}
@@ -512,58 +530,62 @@ Node* BKDTree::create_tree(double** _points) {
 				exit(1);
 			}
 		}
-	} 
+	}
 
-	Node* root = BKDTree::build_tree_recursively(references, temp, 0, end[0], 0); //
+	Node* root = NULL;
+	root = BKDTree::build_tree_recursively(references, temp, 0, end[0], 0); //
 
 	// insert point data into leaf nodes.
 	for (int i = 0; i < this->nPoints; i++) 
 	{
-		std::cout<<"point : ";
+		/*std::cout<<"point : ";
 		for (int j = 0; j < this->nDims; j++)
 		{
 			std::cout<<_points[i][j]<<", ";
 		}
-		std::cout<<std::endl;
-		//BKDTree::insert_leaf_data(root, _points[i], 0, i);
+		std::cout<<std::endl;*/
+		
+		BKDTree::insert_leaf_data(root, _points[i], 0, i);
 	}
 	
-	// delete temporary arrays.
-	for (int i = 0; i < this->nDims; i++) 
+	// delete memories.
+	double_array_delete_3d(referencesFixedOrder, this->nDims, this->nPoints);
+	for(int i = 0; i < this->nDims; i++)
 	{
-		for (int j=0; j < this->nPoints; j++)
-		{
-			delete[] references[i][j];
-		}
 		delete[] references[i];
 	}
 	delete[] references;
 
-
-	double_array_delete_2d(temp, this->nPoints);
-	printf("in create_tree , temp : deleted.\n");
+	printf("[INFO] DELETION - this->references : deleted.\n");
+	//double_array_delete_2d(temp, this->nPoints);
+	//for(int i = 0; i < this->nPoints; i++) 
+	delete[] temp;
 	delete[] end;
+	printf("in create_tree : memories are deleted.\n");
+	
 	return root;
 }
 
 
-void BKDTree::delete_malloc() {
+void BKDTree::delete_node_recursively(Node* node) {
 	// delete all malloc s in the nodes. Following, delete nodes.
-	int numNodes = this->nodesPtrs.size();
-	printf("total # of existing nodes: %d\n", numNodes);
-	
-	for(int i = 0; i < numNodes; i++)
-	{
-		if(this->nodesPtrs[i]->isLeaf==true)
-		{
-			for(int j = 0; j < this->nodesPtrs[i]->pointNodes.size(); j++) // delete pointNodes.
-			{
-				free(this->nodesPtrs[i]->pointNodes[j]);
-			}
-		}
-		free(this->nodesPtrs[i]); // finally, delete nodes.
-	}	
-	printf("All memories of nodes and pointNodes are returned !\n");
+	//std::vector<double> nullTemp1, nullTemp2, nullTemp3;
+
+	if(node->isLeaf != true) {
+		delete_node_recursively(node->left);
+		delete_node_recursively(node->right);
+		//node->left->refPoint.swap(nullTemp1);
+		//node->right->refPoint.swap(nullTemp2);
+		//node->refPoint.swap(nullTemp3);
+		
+		//delete node->left;	
+		//delete node->right;	
+		//delete node;
+	} else { // in the leaf node,
+		for(int i = 0; i < node->numOfPoints; i++) delete node->pointNodes[i]; // delete all 'pointNodes' in the node. 
+	}
+	delete node;
+	// printf("All memories of nodes and pointNodes are returned !\n");
 }
 
 
@@ -653,7 +675,7 @@ void BKDTree::print_tree(const Node* node, const int _depth) {
 	if (node != NULL) {
 		if(node->right != NULL) BKDTree::print_tree(node->right, _depth + 1);
 
-		for (int i = 0; i<_depth; i++) {
+		for (int i = 0; i < _depth; i++) {
 			printf("                       ");
 		}
 		//BKDTree::print_points(aa, node->isLeaf);
@@ -669,7 +691,7 @@ void BKDTree::print_leaf(const Node* node, const int _depth) {
 		if (node->isLeaf) {
 			for (int i = 0; i < node->numOfPoints; i++) {
 				std::cout << "coordinate : [";
-				for (int j = 0; j< this->nDims; j++) {
+				for (int j = 0; j < this->nDims; j++) {
 					std::cout << node->pointNodes[i]->point[j] << ",";
 				}
 				std::cout << " ], index : " << node->pointNodes[i]->index << std::endl;

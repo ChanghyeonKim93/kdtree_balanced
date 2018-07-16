@@ -3,13 +3,11 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <vector>
-#include "BKDTree.h"
-//#include "kdtree_kch.h"
-//#include "kdtree_kch_class.h"
 
 #include <random>
 #include <ctime>
 #include <functional>
+#include "BKDTree.h"
 
 void print_start();
 
@@ -21,11 +19,11 @@ int main() {
 	std::uniform_real_distribution<> distribution(1.0, 1000.0);
 	auto generator = std::bind(distribution, engine);
 
-	int numOfPoints  = 100;
+	int numOfPoints  = 5000;
   int numOfQueries = 1;
 	int ndim         = 4;
 
-	int binSize      = 1; // bin size �� �� 10~50 ������ �����ѵ�.
+	int binSize      = 10; // bin size �� �� 10~50 ������ �����ѵ�.
   double distThres = 20;
 	int maxDepth     = (int)ceil( log2(  ceil( (double)numOfPoints / (double)binSize ) ) );
 
@@ -36,9 +34,9 @@ int main() {
 		for (int j = 0; j < ndim; j++)
     {
       temp.push_back(generator());
-      std::cout<<temp[j]<<", ";
+      //std::cout<<temp[j]<<", ";
     }
-    printf("\n");
+    //printf("\n");
 		points_vec.push_back(temp);
 	}
 
@@ -56,7 +54,8 @@ int main() {
   std::cout << "Required # of bins: " << ceil( (double)numOfPoints / (double)binSize ) <<", Total capacity: " << pow(2.0,maxDepth)*binSize << std::endl;
 
   start  = clock();
-  BKDTree* tree = new BKDTree(points_vec, binSize, distThres);
+  BKDTree* tree = NULL;
+  tree = new BKDTree(points_vec, binSize, distThres);
   finish = clock();
 
   std::cout << "Tree gen elapsed time : " << (finish - start) / 1000.0 << "[ms]"<< std::endl;
@@ -72,7 +71,7 @@ int main() {
 
 	std::cout << "Search elapsed time : " << (finish - start) / 1000.0 << "[ms]"<< std::endl;
 
-  tree->print_tree(tree->treeRootNode,0);
+  // tree->print_tree(tree->treeRootNode,0);
 	//tree->print_leaf(tree->treeRootNode,0);
 
   delete tree;
