@@ -34,9 +34,7 @@ int main() {
 		for (int j = 0; j < ndim; j++)
     {
       temp.push_back(generator());
-      //std::cout<<temp[j]<<", ";
     }
-    //printf("\n");
 		points_vec.push_back(temp);
 	}
 

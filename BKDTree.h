@@ -480,12 +480,14 @@ Node* BKDTree::create_tree(double** _points) {
 	double*** references = new double**[this->nDims];
 	double*** referencesFixedOrder = new double**[this->nDims];
 	double**  temp       = new double*[this->nPoints]; 
+	double**  tempFixedOrder = new double*[this->nPoints];
 	//double*** references = (double***)malloc(this->nDims*sizeof(double**));
 	//double**  temp       = (double**)malloc(this->nPoints*sizeof(double*));
 
 	for (int i = 0; i < this->nPoints; i++)
 	{
 		temp[i] = new double[this->nDims];
+		tempFixedOrder[i] = temp[i];
 	}
 
 	for (int i = 0; i < this->nDims; i++) // dimension
@@ -506,10 +508,7 @@ Node* BKDTree::create_tree(double** _points) {
 	for(int i = 0; i < this->nDims; i++)  
 	{
 		//std::cout<<"  current dim : "<<i<<std::endl;
-		//for(int j = 0; j < this->nPoints; j++)
-		//{
-		//	std::cout << references[i][j][i] << std::endl;
-		//}
+		//for(int j = 0; j < this->nPoints; j++) printf("%lf\n", references[i][j][i]);
 		//printf("\n");
 	}
 	
@@ -550,18 +549,17 @@ Node* BKDTree::create_tree(double** _points) {
 	
 	// delete memories.
 	double_array_delete_3d(referencesFixedOrder, this->nDims, this->nPoints);
-	for(int i = 0; i < this->nDims; i++)
-	{
-		delete[] references[i];
-	}
+	for(int i = 0; i < this->nDims; i++) delete[] references[i];
 	delete[] references;
 
 	printf("[INFO] DELETION - this->references : deleted.\n");
 	//double_array_delete_2d(temp, this->nPoints);
-	//for(int i = 0; i < this->nPoints; i++) 
+	for(int i = 0; i < this->nPoints; i++) delete[] tempFixedOrder[i];
+	delete[] tempFixedOrder;
 	delete[] temp;
+
 	delete[] end;
-	printf("in create_tree : memories are deleted.\n");
+	printf("[INFO] in create_tree : memories are deleted.\n");
 	
 	return root;
 }
@@ -578,8 +576,8 @@ void BKDTree::delete_node_recursively(Node* node) {
 		//node->right->refPoint.swap(nullTemp2);
 		//node->refPoint.swap(nullTemp3);
 		
-		//delete node->left;	
-		//delete node->right;	
+		//delete node->left;
+		//delete node->right;
 		//delete node;
 	} else { // in the leaf node,
 		for(int i = 0; i < node->numOfPoints; i++) delete node->pointNodes[i]; // delete all 'pointNodes' in the node. 
