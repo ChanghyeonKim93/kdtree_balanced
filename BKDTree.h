@@ -4,12 +4,23 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-inline double distance_euclidean(const std::vector<double>& _point_q, const std::vector<double>& _point_r, const int _nDims) {
-	double temp = 0;
-	for (int i = 0; i < _nDims; i++) temp += (_point_q[i] - _point_r[i])*(_point_q[i] - _point_r[i]);
+inline double distance_euclidean(const std::vector<double>& _point_q, const std::vector<double>& _point_r, const int nDims, const bool& useGradient) {
+	double temp = 0.0;
+	double dSpatial = 0.0;
+
+	if( nDims == 4 && useGradient == true)
+	{
+		temp = (_point_q[2]*_point_r[2] + _point_q[3]*_point_r[3] - 1.0);
+		dSpatial += (_point_q[0] - _point_r[0])*(_point_q[0] - _point_r[0]) + (_point_q[1] - _point_r[1])*(_point_q[1] - _point_r[1]);
+		return dSpatial + 0.175*temp*temp;
+	} else {
+		for (int i = 0; i < nDims; i++) temp += (_point_q[i] - _point_r[i])*(_point_q[i] - _point_r[i]);
+		return sqrt(temp);
+	}
 	//printf("dist:%0.3lf\n",sqrt(temp));
-	return sqrt(temp);
 }
+
+
 inline double distance_manhattan(const std::vector<double>& _point_q, const std::vector<double>& _point_r, const int _nDims) {
 	double temp = 0;
 	for (int i = 0; i < _nDims; i++) temp += fabs(_point_q[i] - _point_r[i]);
@@ -50,8 +61,8 @@ void double_array_delete_3d(double*** ptr, int ndims, int npoints)
 
 
 typedef struct _PointNode {
-	int index;
 	std::vector<double> point;
+	int index;
 } PointNode;
 
 typedef struct _Node {
@@ -88,7 +99,7 @@ public:
 /// querying nearest neighbor
 public:
 	void search_NN_depth_first_search(Node* node, const std::vector<double>& _point_q, const int _depth, int* _index);
-	void search_NN_depth_first_search_index(Node* _node, const std::vector<std::vector<double>>& _points_q_vec, std::vector<int>& _index_vec);
+	void search_NN_depth_first_search_multiple(Node* _node, const std::vector<std::vector<double>>& _points_q_vec, std::vector<int>& _index_vec);
 	void kdtree_nearest_neighbor_approximate(const std::vector<std::vector<double>>& _points_q_vec,  std::vector<int>& _index_vec);
 	
 /// For kdtree build ( public functions )
@@ -151,6 +162,8 @@ BKDTree::BKDTree(const std::vector<std::vector<double>>& _points_vec, const int&
 		printf("nDims:%d, ",       this->nDims);
 		printf("binSize:%d, ",     this->binSize);
 		printf("max Depth:%d\n\n", this->maxDepth);
+		printf("[INFO] Expected memory consumption (dynamic allocations) : %0.0lf [KBytes]\n", 0.001*( (double)sizeof(double)*(double)this->nDims*(double)this->nPoints + (double)sizeof(double)*(double)this->nDims*(double)this->nPoints*(double)this->nDims ));
+
 		
 		this->points = NULL;
 		this->points = double_array_allocator_2d( this->nPoints, this->nDims ); // change the data type.
@@ -596,17 +609,18 @@ void BKDTree::search_NN_depth_first_search(Node* node, const std::vector<double>
 		for (int k = 0; k<node->numOfPoints; k++)
 		{
 			//std::cout<<node->pointNodes[k]->index<<std::endl;
-			double currDist = distance_euclidean(_point_q, node->pointNodes[k]->point, this->nDims);
+			double currDist = distance_euclidean(_point_q, node->pointNodes[k]->point, this->nDims, false);
 			//double currDist = distance_manhattan(_point_q, node->pointNodes[k]->point, this->nDims);
 			if (currDist < minDist)
 			{
 				minDist = currDist;
 				*_index = node->pointNodes[k]->index;
 
-				if (minDist <= this->distThres) return;
+				//if (minDist <= this->distThres) return;
 			}
 			//std::cout<<*_index<<std::endl;
 		}
+		if(minDist >= this->distThres) *_index = -1;
 	}
 	else // traveling nodes until reaching the leaf node.
 	{ 
@@ -624,9 +638,9 @@ void BKDTree::search_NN_depth_first_search(Node* node, const std::vector<double>
 
 
 
-void BKDTree::search_NN_depth_first_search_index(Node* _node, const std::vector<std::vector<double>>& _points_q_vec, std::vector<int>& _index_vec){
+void BKDTree::search_NN_depth_first_search_multiple(Node* _node, const std::vector<std::vector<double>>& _points_q_vec, std::vector<int>& _index_vec){
 
-	int* indexTemp = (int*)malloc(sizeof(int));
+	int* indexTemp = new int();
 	int nPointsQuery = _points_q_vec.size();
 	int nDimsQuery    = _points_q_vec[0].size();
 	
@@ -646,12 +660,12 @@ void BKDTree::search_NN_depth_first_search_index(Node* _node, const std::vector<
 		_index_vec.push_back(*indexTemp);
 	}
 
-	free(indexTemp);
+	delete indexTemp;
 }
 
 
 void BKDTree::kdtree_nearest_neighbor_approximate(const std::vector<std::vector<double>>& _points_q_vec,  std::vector<int>& _index_vec){
-	this->search_NN_depth_first_search_index(this->treeRootNode, _points_q_vec, _index_vec);
+	this->search_NN_depth_first_search_multiple(this->treeRootNode, _points_q_vec, _index_vec);
 }
 
 
