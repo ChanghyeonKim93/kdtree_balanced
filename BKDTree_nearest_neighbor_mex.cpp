@@ -1,4 +1,4 @@
-#include "kdtree_kch_class.h"
+#include "BKDTree.h"
 #include "mex.h"
 
 void retrieve_tree( const mxArray* matptr, BKDTree* & tree){
@@ -14,7 +14,7 @@ void retrieve_tree( const mxArray* matptr, BKDTree* & tree){
     // check that I actually received something
     if( tree == NULL )
         mexErrMsgTxt("vararg{1} must be a valid k-D tree pointer\n");
-    if( tree -> ndims() <= 0 )
+    if( tree -> nDims <= 0 )
         mexErrMsgTxt("the k-D tree must have k>0"); 
 }
 void retrieve_data( const mxArray* matptr, double*& data, int& npoints, int& ndims){	
@@ -47,7 +47,7 @@ void mexFunction(int nlhs, mxArray * plhs[], int nrhs, const mxArray * prhs[]){
     // printf("query size: %dx%d\n", npoints, ndims);
     
     // check dimensions
-    if( ndims != tree->ndims() ) 
+    if( ndims != tree->nDims ) 
     	mexErrMsgTxt("vararg{1} must be a [Nxk] matrix of N points in k dimensions\n");   
     
     // npoints x 1 indexes in output
@@ -59,18 +59,19 @@ void mexFunction(int nlhs, mxArray * plhs[], int nrhs, const mxArray * prhs[]){
     // cout << "nindexes: " << mxGetM(plhs[0]) << "x" << mxGetN(plhs[0]) << endl;
     
     // execute the query FOR EVERY point storing the index
-    std::vector< double > query;
     std::vector<std::vector<double>> points_q_vec;
     for(int i =0; i<npoints; i++){
+        std::vector< double > query;
         for(int j=0;j<ndims;j++) query.push_back(query_data[i+j*npoints]); 
         points_q_vec.push_back(query);
     }
 
     std::vector<int> indexVec;
     indexVec.reserve(0);
-    tree->kdtree_nearest_neighbor_approximate(points_q_vec,indexVec);
+    tree->kdtree_nearest_neighbor_approximate(points_q_vec, indexVec);
     for(int i=0; i<npoints; i++)
     {
+        //printf("%d\n",indexVec[i]);
         indexes[i] = indexVec[i]+1; //M-idx
     }
 }

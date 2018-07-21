@@ -255,9 +255,9 @@ double BKDTree::super_key_compare(const double* _point_a, const double* _point_b
 		int r = i + _cur_dim;
 		r = (r < this->nDims) ? r : r - this->nDims; // circular
 		diff = _point_a[r] - _point_b[r];
-		if (diff != 0) break; // 만약, 두개가 같지 않으면 ( 즉, 다르면 ) 그냥 패스 ~
+		if (diff != 0) break; // 만약, ?�개�?같�? ?�으�?( �? ?�르�?) 그냥 ?�스 ~
 	}
-	return diff; // 만약, 모든 차원의 숫자가 같으면 0이 나오고 / a가 크면 (+) / b가 크면 (-).
+	return diff; // 만약, 모든 차원???�자�?같으�?0???�오�?/ a�??�면 (+) / b�??�면 (-).
 }
 
 
@@ -268,9 +268,9 @@ double BKDTree::super_key_compare(const double* _point_a, double* _point_b, cons
 		int r = i + _cur_dim;
 		r = (r < this->nDims) ? r : r - this->nDims; // circular
 		diff = _point_a[r] - _point_b[r];
-		if (diff != 0) break; // 만약, 두개가 같지 않으면 ( 즉, 다르면 ) 그냥 패스 ~
+		if (diff != 0) break; // 만약, ?�개�?같�? ?�으�?( �? ?�르�?) 그냥 ?�스 ~
 	}
-	return diff; // 만약, 모든 차원의 숫자가 같으면 0이 나오고 / a가 크면 (+) / b가 크면 (-).
+	return diff; // 만약, 모든 차원???�자�?같으�?0???�오�?/ a�??�면 (+) / b�??�면 (-).
 }
 
 void BKDTree::merge_sort(double** reference, double** temporary, const long low, const long high, const int _cur_dim) {
@@ -358,14 +358,14 @@ Node* BKDTree::build_tree_recursively(double*** references, double** temp, const
 
 	if(_depth < this->maxDepth) // If the depth does not reach to max_depth.
 	{
-		if (end == start) // 1개 남았을 때
-		{
+		if (end == start) // 1�??�았????		
+        {
 			std::cout << "end == start" << std::endl;
 			node        = BKDTree::new_node_leaf(-1);
 			this->nNodes += 1;
 		}
-		else if (end == start + 1) // 2개 남았을 때
-		{
+		else if (end == start + 1) // 2�??�았????		
+        {
 			//std::cout<<"end == start+1"<<std::endl;
 			//for(int i =0; i < this->nDims; i++) std::cout<<references[0][start][i]<<", ";
 			//std::cout<<std::endl;
@@ -378,8 +378,8 @@ Node* BKDTree::build_tree_recursively(double*** references, double** temp, const
 
 			this->nNodes += 3;
 		}
-		else if (end == start + 2) // 3개 남았을 때
-		{
+		else if (end == start + 2) // 3�??�았????		
+        {
 			//std::cout<<"end == start+2"<<std::endl;
 			//for(int i = 0; i < this->nDims; i++) std::cout << node->right->refPoint[i] << ", ";
 			//std::cout<<std::endl;
@@ -390,10 +390,10 @@ Node* BKDTree::build_tree_recursively(double*** references, double** temp, const
 
 			this->nNodes += 3;
 		}
-		else if (end >  start + 2) // 4개 이상 남았을 때
-		{
+		else if (end >  start + 2) // 4�??�상 ?�았????		
+        {
 			//std::cout<<"end > start+2"<<std::endl;
-			const int median = start + ( (end - start) / 2); // 내림된다. ex) (0+5)/2 = 2.5 (x) / 2 (o) , (0+4)/2 = 2
+			const int median = start + ( (end - start) / 2); // ?�림?�다. ex) (0+5)/2 = 2.5 (x) / 2 (o) , (0+4)/2 = 2
 			node = BKDTree::new_node(references[0][median]);
 
 			this->nNodes += 1;
@@ -407,7 +407,7 @@ Node* BKDTree::build_tree_recursively(double*** references, double** temp, const
 				//{
 				//	temp[i][m] = references[0][i][m];
 				//}
-				temp[i] = references[0][i]; //  여기가 문제 있어 보임.
+				temp[i] = references[0][i]; //  ?�기�?문제 ?�어 보임.
 				//std::cout<<"temp add.: "<<temp[i]<<", ref. add. : "<<references[0][i]<<std::endl;
 			}
 
@@ -422,12 +422,12 @@ Node* BKDTree::build_tree_recursively(double*** references, double** temp, const
 				{
 					double compare = BKDTree::super_key_compare(references[i][j], references[0][median], axis);
 					//std::cout<<"cur dim: "<<i <<" ref : "<<references[i][j][axis]<<", current : "<<pointTemp[axis] <<" COMPARE : "<<compare<<" === ";
-					if (compare < 0) // 만약, references[i][j]가 현재 중심점인 node->point 보다 모든 차원에서 작다면, (한 차원에서만 작아도)
+					if (compare < 0) // 만약, references[i][j]�??�재 중심?�인 node->point 보다 모든 차원?�서 ?�다�? (??차원?�서�??�아??
 					{
 						//std::cout<<"   down  "<<std::endl;
 						references[i - 1][++lower] = references[i][j]; // 
 					}
-					else if (compare > 0) // 만약, references[i][j]가 현재 중심점인 node->point 보다 모든 차원에서 크다면, (한 차원에서만 커도)
+					else if (compare > 0) // 만약, references[i][j]�??�재 중심?�인 node->point 보다 모든 차원?�서 ?�다�? (??차원?�서�?커도)
 					{
 						//std::cout<<"   up    "<<std::endl;
 						references[i - 1][++upper] = references[i][j];
@@ -527,12 +527,12 @@ Node* BKDTree::create_tree(double** _points) {
 	
 
 	int* end = new int[this->nDims];
-	for (int i = 0; i < this->nDims; i++) // 트리 구성 중, 완전 동일한 점 삭제.
+	for (int i = 0; i < this->nDims; i++) // ?�리 구성 �? ?�전 ?�일??????��.
 	{ 
 		end[i] = BKDTree::remove_duplicates(references[i], i);
 	}
 
-	for (int i = 0; i < this->nDims - 1; i++) // 만약, 병합정렬 된 모든 차원에서의 end가 같지 않으면, 제대로 removal이 이루어지지 않은 것이므로 에러발생.
+	for (int i = 0; i < this->nDims - 1; i++) // 만약, 병합?�렬 ??모든 차원?�서??end�?같�? ?�으�? ?��?�?removal???�루?��?�??��? 것이�?�� ?�러발생.
 	{
 		for (int j = i + 1; j < this->nDims; j++) 
 		{

@@ -1,4 +1,4 @@
-#include "kdtree_kch_class.h"
+#include "BKDTree.h"
 #include "mex.h"
 #include "matrix.h" //isNaN/isinf
 #include <vector>
@@ -29,20 +29,25 @@ void retrieve_data( const mxArray* matptr, std::vector< std::vector<double> >& d
 }
 void mexFunction(int nlhs, mxArray * plhs[], int nrhs, const mxArray * prhs[]){   
 	// check input
-	if( nrhs != 1 || !mxIsNumeric(prhs[0]) )
+	if( !mxIsNumeric(prhs[0]) )
 		mexErrMsgTxt("A unique [kxN] matrix of points should be passed.\n");
-	   
+	if( nrhs != 3)
+        mexErrMsgTxt("The number of inputs needs to be 3.\n");
     // retrieve the data
     std::vector< std::vector<double> > input_data;
     int npoints;
     int ndims;
     retrieve_data( prhs[0], input_data, npoints, ndims );
+    
     // printf("npoints %d ndims %d\n", npoints, ndims);
     
     // fill the k-D tree
-	//KDTree* tree = new KDTree( input_data );	
-	
-    BKDTree* bkdTree2 = new BKDTree(points_vec, binSize, distThres);
+    double* binSizePtr = mxGetPr(prhs[1]);
+    double* distThresPtr = mxGetPr(prhs[2]);
+    int binSize = (int)(*binSizePtr);
+    double distThres = *distThresPtr;
+
+    BKDTree* tree = new BKDTree(input_data, binSize, distThres);
  
 
   /*
